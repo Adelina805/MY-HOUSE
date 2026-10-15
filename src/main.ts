@@ -2,8 +2,12 @@ import './styles/global.css'
 import './styles/door.css'
 import './styles/candy.css'
 
+import { inject } from '@vercel/analytics'
+
 import { ExperienceController } from './core/experienceController'
 import { preloadBootImages, waitForNextPaint } from './core/preloadAssets'
+
+inject()
 
 const mount = document.querySelector<HTMLDivElement>('#app')
 if (!mount) {
