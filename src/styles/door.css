@@ -1,0 +1,179 @@
+/* --------------------------------------------------------------------------
+   Door frame — U.S. residential proportion (height : width = 2.2 : 1).
+   Centered in the door environment. Tune --door-max-width to resize.
+   -------------------------------------------------------------------------- */
+.environment--door {
+  --door-aspect-ratio: 1 / 2.2;
+  --door-max-width: min(44vw, 340px);
+  --door-max-height: min(72vh, 88dvh);
+}
+
+.environment--door {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 50%;
+  background: transparent;
+  overflow: hidden;
+}
+
+.environment--door[data-hidden='true'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.door__viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.door__perspective {
+  width: 100%;
+  height: 100%;
+  perspective-origin: 50% 50%;
+}
+
+.door__rig {
+  position: relative;
+  width: 108%;
+  height: 108%;
+  left: -4%;
+  top: -4%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.door__doorway {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--door-max-width);
+  max-height: var(--door-max-height);
+  aspect-ratio: var(--door-aspect-ratio);
+  height: auto;
+  max-width: calc(var(--door-max-height) / 2.2);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.door__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.door__closed-image,
+.door__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.door__video {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.door__media[data-mode='greeting'] .door__video--greeting,
+.door__media[data-mode='goodbye'] .door__video--goodbye {
+  opacity: 1;
+  visibility: visible;
+}
+
+.door__media[data-mode='greeting'] .door__closed-image,
+.door__media[data-mode='goodbye'] .door__closed-image {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.door__knock-target {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.door__knock-target:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.environment--door[data-finished='true'] .door__knock-target {
+  pointer-events: none;
+}
+
+.door__knock-target:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 4px;
+}
+
+.door__restart {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.door__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes door-knock {
+  0%,
+  100% {
+    transform: translateX(0) rotateZ(0deg);
+  }
+  15% {
+    transform: translateX(-3px) rotateZ(-0.6deg);
+  }
+  45% {
+    transform: translateX(-4px) rotateZ(-0.8deg);
+  }
+  60% {
+    transform: translateX(1px) rotateZ(0.3deg);
+  }
+}
+
+.door__knock-target--knocking {
+  animation: door-knock 0.55s ease-in-out;
+}
+
+@media (max-width: 480px) {
+  .environment--door {
+    --door-max-width: min(78vw, 300px);
+    --door-max-height: min(68vh, 82dvh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .door__knock-target--knocking {
+    animation: none;
+    opacity: 0.9;
+  }
+}

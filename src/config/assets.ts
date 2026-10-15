@@ -1,30 +1,28 @@
 /**
  * Media paths for MY HOUSE.
  *
- * Drop your files under public/media/… and set the paths below.
+ * Drop files under public/media/… and set paths below.
  * Leave a string empty to use the built-in CSS placeholder for that slot.
- *
- * Examples once you have art:
- *   doorstep.house: '/media/doorstep/house.jpg'
- *   greeting.video: '/media/greeting/intro.mp4'
- *   candy.bowl:     '/media/candy/bowl.png'
- *   goodbye.video:  '/media/goodbye/closing.mp4'
  */
 export const assets = {
-  doorstep: {
-    /** Full-scene house / front-door image. Empty = CSS facade. */
-    house: '',
-  },
-  greeting: {
-    /** Pre-recorded greeting video. Empty = text placeholder. */
-    video: '',
+  /** Shared wall texture behind the whole experience. Empty = flat neutral fill. */
+  wall: '/media/wall.jpg',
+  door: {
+    /** Closed door image (centered, 2.2:1 height-to-width). */
+    image: '/media/door.webp',
+    /** Greeting video (plays inside the same door frame). */
+    greetingVideo: '',
+    /** Goodbye video (same door frame). */
+    goodbyeVideo: '',
   },
   candy: {
-    /** Candy bowl image. Empty = CSS bowl shape. */
-    bowl: '',
+    /** Optional candy-only backdrop override. Empty = use shared wall only. */
+    background: '',
+    /** Bowl image. Empty = CSS bowl shape. */
+    bowlImage: '',
   },
-  goodbye: {
-    /** Closing video. Empty = text placeholder. */
-    video: '',
+  audio: {
+    /** Knock sound. Empty = silent knock animation only. */
+    knock: '',
   },
 } as const

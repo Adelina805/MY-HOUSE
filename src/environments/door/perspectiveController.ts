@@ -10,7 +10,7 @@ function isCoarsePointer(): boolean {
 }
 
 /**
- * Subtle 2.5D camera on the doorstep rig.
+ * Subtle 2.5D camera on the door rig.
  * Sensitivity: see src/config/movement.ts
  */
 export class PerspectiveController {
@@ -95,6 +95,24 @@ export class PerspectiveController {
     if (!this.reducedMotion && this.coarse) {
       this.startIdle()
     }
+  }
+
+  returnToNeutralAnimated(duration = movement.returnEaseDuration): Promise<void> {
+    if (this.reducedMotion) {
+      gsap.set(this.rig, { rotateX: 0, rotateY: 0, scale: 1 })
+      return Promise.resolve()
+    }
+    return new Promise((resolve) => {
+      gsap.to(this.rig, {
+        rotateX: 0,
+        rotateY: 0,
+        scale: 1,
+        duration,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        onComplete: resolve,
+      })
+    })
   }
 
   destroy(): void {
