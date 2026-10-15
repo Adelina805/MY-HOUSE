@@ -27,6 +27,8 @@ export class DoorMediaController {
     ) as HTMLImageElement
 
     if (assets.door.image) {
+      this.closedImage.decoding = 'sync'
+      this.closedImage.setAttribute('fetchpriority', 'high')
       this.closedImage.src = assets.door.image
     }
 

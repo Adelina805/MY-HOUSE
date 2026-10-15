@@ -3,8 +3,8 @@
  * Tune translateY (vh) and duration for the tilt up/down feel.
  */
 export const transitions = {
-  toCandyDuration: 0.85,
-  toDoorDuration: 0.85,
+  toCandyDuration: 0,
+  toDoorDuration: 0,
   /**
    * Camera rig shift as % of .experience__camera height (200% of viewport).
    * 50 moves exactly one viewport down to the candy layer.

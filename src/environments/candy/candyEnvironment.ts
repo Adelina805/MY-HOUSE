@@ -17,68 +17,59 @@ function prefersReducedMotion(): boolean {
 
 export function createCandyEnvironment(): CandyEnvironment {
   let root: HTMLElement | null = null
-  let bowl: HTMLButtonElement | null = null
+  let scene: HTMLElement | null = null
+  let takeTarget: HTMLButtonElement | null = null
   let onTake: (() => void) | null = null
   let interactive = true
 
   return {
     mount(container: HTMLElement): void {
-      const hasBg = Boolean(assets.candy.background)
-
       const env = document.createElement('section')
-      env.className = `environment environment--candy${hasBg ? ' candy--has-bg-image' : ''}`
+      env.className = 'environment environment--candy'
       env.setAttribute('role', 'region')
       env.setAttribute('aria-label', 'Candy bowl')
       env.dataset.hidden = 'true'
       env.setAttribute('aria-hidden', 'true')
 
-      const scene = document.createElement('div')
-      scene.className = 'candy__scene'
+      const viewport = document.createElement('div')
+      viewport.className = 'candy__viewport'
 
-      if (hasBg) {
-        const bg = document.createElement('div')
-        bg.className = 'candy__backdrop candy__backdrop--image'
+      const sceneEl = document.createElement('div')
+      sceneEl.className = 'candy__scene'
+
+      if (assets.candy.image) {
         const img = document.createElement('img')
-        img.src = assets.candy.background
+        img.className = 'candy__image'
+        img.src = assets.candy.image
         img.alt = ''
         img.draggable = false
-        bg.appendChild(img)
-        scene.appendChild(bg)
+        sceneEl.appendChild(img)
       }
 
-      const bowlBtn = document.createElement('button')
-      bowlBtn.type = 'button'
-      bowlBtn.className = 'candy__bowl'
-      bowlBtn.setAttribute('aria-label', 'Take a piece of candy')
+      const takeBtn = document.createElement('button')
+      takeBtn.type = 'button'
+      takeBtn.className = 'candy__take-target'
+      takeBtn.setAttribute('aria-label', 'Take a piece of candy')
+      takeBtn.innerHTML = `<span class="candy__sr-only">Take a piece of candy</span>`
 
-      if (assets.candy.bowlImage) {
-        const img = document.createElement('img')
-        img.src = assets.candy.bowlImage
-        img.alt = ''
-        img.draggable = false
-        bowlBtn.appendChild(img)
-      } else {
-        const shape = document.createElement('span')
-        shape.className = 'candy__bowl-shape'
-        shape.setAttribute('aria-hidden', 'true')
-        bowlBtn.appendChild(shape)
-      }
-
-      bowlBtn.addEventListener('click', () => {
+      takeBtn.addEventListener('click', () => {
         if (!interactive) return
         onTake?.()
       })
 
-      scene.appendChild(bowlBtn)
-      env.appendChild(scene)
+      sceneEl.appendChild(takeBtn)
+      viewport.appendChild(sceneEl)
+      env.appendChild(viewport)
       container.appendChild(env)
 
       root = env
-      bowl = bowlBtn
+      scene = sceneEl
+      takeTarget = takeBtn
     },
 
     unmount(): void {
-      bowl = null
+      scene = null
+      takeTarget = null
       root?.remove()
       root = null
     },
@@ -91,28 +82,28 @@ export function createCandyEnvironment(): CandyEnvironment {
 
     setInteractive(value: boolean): void {
       interactive = value
-      if (bowl) {
-        bowl.disabled = !value
+      if (takeTarget) {
+        takeTarget.disabled = !value
       }
     },
 
     playTakeAnimation(): Promise<void> {
-      if (!bowl) return Promise.resolve()
+      if (!scene) return Promise.resolve()
       if (prefersReducedMotion()) {
         return Promise.resolve()
       }
       return new Promise((resolve) => {
         gsap.fromTo(
-          bowl,
+          scene,
           { scale: 1 },
           {
-            scale: 0.94,
+            scale: 0.97,
             duration: 0.12,
             ease: 'power1.in',
             yoyo: true,
             repeat: 1,
             onComplete: () => {
-              gsap.set(bowl, { clearProps: 'transform' })
+              gsap.set(scene, { clearProps: 'transform' })
               resolve()
             },
           },
@@ -126,9 +117,11 @@ export function createCandyEnvironment(): CandyEnvironment {
 
     reset(): void {
       interactive = true
-      if (bowl) {
-        bowl.disabled = false
-        gsap.set(bowl, { clearProps: 'transform' })
+      if (takeTarget) {
+        takeTarget.disabled = false
+      }
+      if (scene) {
+        gsap.set(scene, { clearProps: 'transform' })
       }
     },
   }

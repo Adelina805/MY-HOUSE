@@ -6,6 +6,9 @@
   --door-aspect-ratio: 1 / 2.2;
   --door-max-width: min(44vw, 340px);
   --door-max-height: min(72vh, 88dvh);
+  --door-width: min(var(--door-max-width), calc(var(--door-max-height) / 2.2));
+  --door-half-height: calc(var(--door-width) * 1.1);
+  --floor-color: #3a3a3a;
 }
 
 .environment--door {
@@ -47,15 +50,24 @@
   will-change: transform;
 }
 
+.door__floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + var(--door-half-height));
+  bottom: 0;
+  background: var(--floor-color);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .door__doorway {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: var(--door-max-width);
-  max-height: var(--door-max-height);
+  width: var(--door-width);
   aspect-ratio: var(--door-aspect-ratio);
   height: auto;
-  max-width: calc(var(--door-max-height) / 2.2);
   transform: translate(-50%, -50%);
   z-index: 2;
 }

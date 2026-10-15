@@ -46,6 +46,10 @@ button:focus-visible {
   overflow: hidden;
 }
 
+#app.app--booting {
+  visibility: hidden;
+}
+
 .experience {
   position: absolute;
   inset: 0;

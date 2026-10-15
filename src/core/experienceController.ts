@@ -11,10 +11,6 @@ import {
 } from '../environments/door/doorEnvironment'
 import type { ExperienceState } from './types'
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
 export class ExperienceController {
   private readonly host: HTMLElement
   private camera: HTMLElement | null = null
@@ -41,6 +37,8 @@ export class ExperienceController {
       wallImg.src = assets.wall
       wallImg.alt = ''
       wallImg.draggable = false
+      wallImg.decoding = 'sync'
+      wallImg.setAttribute('fetchpriority', 'high')
       wall.appendChild(wallImg)
       experience.appendChild(wall)
     }
@@ -88,13 +86,12 @@ export class ExperienceController {
     this.door.setPerspectiveEnabled(false)
 
     await this.door.returnToNeutral()
-    await this.door.playKnock()
 
     this.state = 'greeting'
     await this.door.playGreeting()
 
     this.state = 'waiting-for-candy'
-    await this.transitionToCandy()
+    this.transitionToCandy()
     this.candy.setInteractive(true)
     this.busy = false
   }
@@ -104,8 +101,7 @@ export class ExperienceController {
     this.busy = true
     this.candy.setInteractive(false)
 
-    await this.candy.playTakeAnimation()
-    await this.transitionToDoor()
+    this.transitionToDoor()
 
     this.door.setHidden(false)
     this.state = 'goodbye'
@@ -130,51 +126,21 @@ export class ExperienceController {
     this.busy = false
   }
 
-  private transitionToCandy(): Promise<void> {
+  private transitionToCandy(): void {
     const camera = this.camera
-    if (!camera) return Promise.resolve()
+    if (!camera) return
 
-    const duration = prefersReducedMotion() ? 0 : transitions.toCandyDuration
     const yPercent = transitions.toCandyTranslatePercent
-
     this.candy.setHidden(false)
     this.door.setHidden(true)
-
-    if (duration === 0) {
-      gsap.set(camera, { y: `-${yPercent}%` })
-      return Promise.resolve()
-    }
-
-    return new Promise((resolve) => {
-      gsap.to(camera, {
-        y: `-${yPercent}%`,
-        duration,
-        ease: transitions.ease,
-        onComplete: resolve,
-      })
-    })
+    gsap.set(camera, { y: `-${yPercent}%` })
   }
 
-  private transitionToDoor(): Promise<void> {
+  private transitionToDoor(): void {
     const camera = this.camera
-    if (!camera) return Promise.resolve()
-
-    const duration = prefersReducedMotion() ? 0 : transitions.toDoorDuration
+    if (!camera) return
 
     this.candy.setHidden(true)
-
-    if (duration === 0) {
-      gsap.set(camera, { y: 0 })
-      return Promise.resolve()
-    }
-
-    return new Promise((resolve) => {
-      gsap.to(camera, {
-        y: 0,
-        duration,
-        ease: transitions.ease,
-        onComplete: resolve,
-      })
-    })
+    gsap.set(camera, { y: 0 })
   }
 }

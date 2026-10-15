@@ -16,10 +16,8 @@ export const assets = {
     goodbyeVideo: '',
   },
   candy: {
-    /** Optional candy-only backdrop override. Empty = use shared wall only. */
-    background: '',
-    /** Bowl image. Empty = CSS bowl shape. */
-    bowlImage: '',
+    /** Full candy-bowl scene (fills the candy environment). */
+    image: '/media/candy-bowl.png',
   },
   audio: {
     /** Knock sound. Empty = silent knock animation only. */

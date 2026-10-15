@@ -86,6 +86,11 @@ export function createDoorEnvironment(): DoorEnvironment {
       doorway.appendChild(knockBtn)
       doorway.appendChild(restart)
 
+      const floor = document.createElement('div')
+      floor.className = 'door__floor'
+      floor.setAttribute('aria-hidden', 'true')
+
+      rig.appendChild(floor)
       rig.appendChild(doorway)
       perspectiveEl.appendChild(rig)
       viewport.appendChild(perspectiveEl)
