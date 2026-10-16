@@ -4,6 +4,7 @@ import './styles/candy.css'
 
 import { inject } from '@vercel/analytics'
 
+import { frame } from './config/composition'
 import { ExperienceController } from './core/experienceController'
 import { preloadBootImages, waitForNextPaint } from './core/preloadAssets'
 
@@ -14,7 +15,18 @@ if (!mount) {
   throw new Error('#app mount point not found')
 }
 
+function applyFrameTokens(): void {
+  const root = document.documentElement
+  root.style.setProperty('--frame-color', frame.color)
+  root.style.setProperty('--frame-thickness', `${frame.thicknessDesktopPx}px`)
+  root.style.setProperty(
+    '--frame-thickness-mobile',
+    `${frame.thicknessMobilePx}px`,
+  )
+}
+
 async function boot(app: HTMLDivElement): Promise<void> {
+  applyFrameTokens()
   app.classList.add('app--booting')
 
   try {

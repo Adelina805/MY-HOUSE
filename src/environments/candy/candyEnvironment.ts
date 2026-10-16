@@ -9,6 +9,8 @@ export interface CandyEnvironment {
   playTakeAnimation(): Promise<void>
   bindTakeHandler(handler: () => void): void
   reset(): void
+  getSceneElement(): HTMLElement | null
+  resetSceneTransform(): void
 }
 
 function prefersReducedMotion(): boolean {
@@ -121,8 +123,17 @@ export function createCandyEnvironment(): CandyEnvironment {
         takeTarget.disabled = false
       }
       if (scene) {
-        gsap.set(scene, { clearProps: 'transform' })
+        gsap.set(scene, { clearProps: 'all' })
       }
+    },
+
+    getSceneElement(): HTMLElement | null {
+      return scene
+    },
+
+    resetSceneTransform(): void {
+      if (!scene) return
+      gsap.set(scene, { clearProps: 'all' })
     },
   }
 }

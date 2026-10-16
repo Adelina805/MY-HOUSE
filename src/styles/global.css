@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+:root {
+  --frame-color: #2e2e2e;
+  --frame-thickness: 20px;
+}
+
 html,
 body {
   margin: 0;
@@ -18,7 +23,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   color: #1a1a1a;
-  background: #c8c8c8;
+  background: var(--frame-color);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,6 +49,8 @@ button:focus-visible {
   min-height: 100svh;
   position: relative;
   overflow: hidden;
+  padding: var(--frame-thickness);
+  background: var(--frame-color);
 }
 
 #app.app--booting {
@@ -56,6 +63,7 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background: #d8d8d6;
 }
 
 .experience__wall {
@@ -81,6 +89,12 @@ button:focus-visible {
   width: 100%;
   height: 200%;
   will-change: transform;
+}
+
+@media (max-width: 480px) {
+  :root {
+    --frame-thickness: var(--frame-thickness-mobile, 10px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

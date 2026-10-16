@@ -18,10 +18,15 @@ export interface DoorEnvironment {
   bindKnockHandler(handler: () => void): void
   bindRestartHandler(handler: () => void): void
   setKnockEnabled(enabled: boolean): void
+  getSceneElement(): HTMLElement | null
+  resetSceneTransform(): void
+  prepareForGoodbye(): void
+  clearGreetingHold(): void
 }
 
 export function createDoorEnvironment(): DoorEnvironment {
   let root: HTMLElement | null = null
+  let scene: HTMLElement | null = null
   let perspective: PerspectiveController | null = null
   let media: DoorMediaController | null = null
   let knockTarget: HTMLButtonElement | null = null
@@ -57,8 +62,15 @@ export function createDoorEnvironment(): DoorEnvironment {
       const rig = document.createElement('div')
       rig.className = 'door__rig'
 
-      const doorway = document.createElement('div')
-      doorway.className = 'door__doorway'
+      const sceneEl = document.createElement('div')
+      sceneEl.className = 'door__scene'
+
+      const background = document.createElement('div')
+      background.className = 'door__background'
+      background.setAttribute('aria-hidden', 'true')
+
+      const doorwayFrame = document.createElement('div')
+      doorwayFrame.className = 'door__doorway-frame'
 
       const mediaRoot = document.createElement('div')
       mediaRoot.className = 'door__media'
@@ -82,22 +94,19 @@ export function createDoorEnvironment(): DoorEnvironment {
       restart.setAttribute('aria-label', 'Visit again')
       restart.innerHTML = `<span class="door__sr-only">Visit again</span>`
 
-      doorway.appendChild(mediaRoot)
-      doorway.appendChild(knockBtn)
-      doorway.appendChild(restart)
-
-      const floor = document.createElement('div')
-      floor.className = 'door__floor'
-      floor.setAttribute('aria-hidden', 'true')
-
-      rig.appendChild(floor)
-      rig.appendChild(doorway)
+      mediaRoot.appendChild(knockBtn)
+      doorwayFrame.appendChild(mediaRoot)
+      sceneEl.appendChild(background)
+      sceneEl.appendChild(doorwayFrame)
+      rig.appendChild(sceneEl)
       perspectiveEl.appendChild(rig)
       viewport.appendChild(perspectiveEl)
+      viewport.appendChild(restart)
       env.appendChild(viewport)
       container.appendChild(env)
 
       root = env
+      scene = sceneEl
       knockTarget = knockBtn
       restartBtn = restart
       media = new DoorMediaController(mediaRoot)
@@ -119,6 +128,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       knockTarget = null
       restartBtn = null
       knockAudio = null
+      scene = null
       root?.remove()
       root = null
     },
@@ -143,9 +153,9 @@ export function createDoorEnvironment(): DoorEnvironment {
     },
 
     async playKnock(): Promise<void> {
-      if (!knockTarget) return
+      if (!scene) return
       playKnockSound()
-      await playKnockAnimation(knockTarget)
+      await playKnockAnimation(scene)
     },
 
     playGreeting(): Promise<void> {
@@ -172,6 +182,8 @@ export function createDoorEnvironment(): DoorEnvironment {
       knockTarget.disabled = false
       restartBtn.hidden = true
       this.setPerspectiveEnabled(true)
+      this.resetSceneTransform()
+      this.clearGreetingHold()
     },
 
     bindKnockHandler(handler: () => void): void {
@@ -186,6 +198,24 @@ export function createDoorEnvironment(): DoorEnvironment {
       if (knockTarget) {
         knockTarget.disabled = !enabled
       }
+    },
+
+    getSceneElement(): HTMLElement | null {
+      return scene
+    },
+
+    resetSceneTransform(): void {
+      if (!scene) return
+      scene.style.transform = ''
+      scene.style.transformOrigin = ''
+    },
+
+    prepareForGoodbye(): void {
+      media?.showClosed()
+    },
+
+    clearGreetingHold(): void {
+      media?.showClosed()
     },
   }
 }

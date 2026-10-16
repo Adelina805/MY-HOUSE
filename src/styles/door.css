@@ -1,14 +1,20 @@
 /* --------------------------------------------------------------------------
-   Door frame — U.S. residential proportion (height : width = 2.2 : 1).
-   Centered in the door environment. Tune --door-max-width to resize.
+   Door composition — Figma-aligned doorway frame (sizing authority).
+   Tune --door-width, --door-top, --door-object-position per breakpoint.
+   Source video aspect: 1248×2870.
    -------------------------------------------------------------------------- */
 .environment--door {
-  --door-aspect-ratio: 1 / 2.2;
-  --door-max-width: min(44vw, 340px);
-  --door-max-height: min(72vh, 88dvh);
-  --door-width: min(var(--door-max-width), calc(var(--door-max-height) / 2.2));
-  --door-half-height: calc(var(--door-width) * 1.1);
-  --floor-color: #3a3a3a;
+  --door-width: 44%;
+  --door-top: 5.5%;
+  --door-aspect-ratio: 1248 / 2870;
+  --door-frame-thickness: 18px;
+  --door-frame-color: #333333;
+  --door-object-position: center 12%;
+  --door-scene-bg: #d8d8d6;
+  --door-hit-width: 72%;
+  --door-hit-height: 82%;
+  --door-hit-x: 50%;
+  --door-hit-y: 48%;
 }
 
 .environment--door {
@@ -17,8 +23,8 @@
   right: 0;
   top: 0;
   height: 50%;
-  background: transparent;
   overflow: hidden;
+  background: var(--door-scene-bg);
 }
 
 .environment--door[data-hidden='true'] {
@@ -26,6 +32,7 @@
   pointer-events: none;
 }
 
+/* Scene viewport — clips doorway extending below the fold */
 .door__viewport {
   position: relative;
   width: 100%;
@@ -37,46 +44,55 @@
 .door__perspective {
   width: 100%;
   height: 100%;
-  perspective-origin: 50% 50%;
+  perspective-origin: 50% 35%;
 }
 
 .door__rig {
   position: relative;
-  width: 108%;
-  height: 108%;
-  left: -4%;
-  top: -4%;
+  width: 100%;
+  height: 100%;
   transform-style: preserve-3d;
   will-change: transform;
 }
 
-.door__floor {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(50% + var(--door-half-height));
-  bottom: 0;
-  background: var(--floor-color);
-  z-index: 1;
-  pointer-events: none;
+/* Door environment — no vertical centering */
+.door__scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: center 35%;
+  will-change: transform;
 }
 
-.door__doorway {
+.door__background {
   position: absolute;
+  inset: 0;
+  background: var(--door-scene-bg);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Dark-gray frame around the doorway; extends past bottom of viewport */
+.door__doorway-frame {
+  position: absolute;
+  top: var(--door-top);
   left: 50%;
-  top: 50%;
+  z-index: 1;
   width: var(--door-width);
   aspect-ratio: var(--door-aspect-ratio);
-  height: auto;
-  transform: translate(-50%, -50%);
-  z-index: 2;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  border: var(--door-frame-thickness) solid var(--door-frame-color);
+  background: var(--door-frame-color);
+  overflow: hidden;
 }
 
+/* Media fills the frame; cover crops inside the frame only */
 .door__media {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: transparent;
+  background: #1a1a1a;
 }
 
 .door__closed-image,
@@ -85,8 +101,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  object-fit: cover;
+  object-position: var(--door-object-position);
   display: block;
   user-select: none;
   pointer-events: none;
@@ -98,20 +114,26 @@
 }
 
 .door__media[data-mode='greeting'] .door__video--greeting,
-.door__media[data-mode='goodbye'] .door__video--goodbye {
+.door__media[data-mode='goodbye'] .door__video--goodbye,
+.door__media[data-mode='greeting-hold'] .door__video--greeting {
   opacity: 1;
   visibility: visible;
 }
 
 .door__media[data-mode='greeting'] .door__closed-image,
-.door__media[data-mode='goodbye'] .door__closed-image {
+.door__media[data-mode='goodbye'] .door__closed-image,
+.door__media[data-mode='greeting-hold'] .door__closed-image {
   opacity: 0;
   visibility: hidden;
 }
 
 .door__knock-target {
   position: absolute;
-  inset: 0;
+  left: var(--door-hit-x);
+  top: var(--door-hit-y);
+  width: var(--door-hit-width);
+  height: var(--door-hit-height);
+  transform: translate(-50%, -50%);
   padding: 0;
   margin: 0;
   border: none;
@@ -156,36 +178,21 @@
   border: 0;
 }
 
-@keyframes door-knock {
-  0%,
-  100% {
-    transform: translateX(0) rotateZ(0deg);
-  }
-  15% {
-    transform: translateX(-3px) rotateZ(-0.6deg);
-  }
-  45% {
-    transform: translateX(-4px) rotateZ(-0.8deg);
-  }
-  60% {
-    transform: translateX(1px) rotateZ(0.3deg);
-  }
-}
-
-.door__knock-target--knocking {
-  animation: door-knock 0.55s ease-in-out;
-}
-
 @media (max-width: 480px) {
   .environment--door {
-    --door-max-width: min(78vw, 300px);
-    --door-max-height: min(68vh, 82dvh);
+    --door-width: 92%;
+    --door-top: 4%;
+    --door-frame-thickness: 10px;
+    --door-object-position: center 10%;
+    --door-hit-width: 78%;
+    --door-hit-height: 80%;
+    --door-hit-x: 50%;
+    --door-hit-y: 46%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .door__knock-target--knocking {
-    animation: none;
-    opacity: 0.9;
+  .door__rig {
+    transform: none !important;
   }
 }

@@ -8,7 +8,7 @@ function wait(ms: number): Promise<void> {
   })
 }
 
-export type DoorMediaMode = 'closed' | 'greeting' | 'goodbye'
+export type DoorMediaMode = 'closed' | 'greeting' | 'greeting-hold' | 'goodbye'
 
 export class DoorMediaController {
   private readonly mediaRoot: HTMLElement
@@ -39,10 +39,13 @@ export class DoorMediaController {
       '.door__video--goodbye',
     ) as HTMLVideoElement
 
-    this.greetingVideo.playsInline = true
-    this.goodbyeVideo.playsInline = true
-    this.greetingVideo.preload = 'none'
-    this.goodbyeVideo.preload = 'none'
+    for (const video of [this.greetingVideo, this.goodbyeVideo]) {
+      video.playsInline = true
+      video.controls = false
+      video.preload = 'none'
+      video.setAttribute('playsinline', '')
+      video.setAttribute('webkit-playsinline', '')
+    }
   }
 
   setMode(mode: DoorMediaMode): void {
@@ -56,6 +59,11 @@ export class DoorMediaController {
     this.setMode('closed')
   }
 
+  holdGreetingEndFrame(): void {
+    this.greetingVideo.pause()
+    this.setMode('greeting-hold')
+  }
+
   async playGreeting(): Promise<void> {
     this.pauseAllVideos()
     this.setMode('greeting')
@@ -63,14 +71,14 @@ export class DoorMediaController {
     const src = assets.door.greetingVideo
     if (!src) {
       await wait(PLACEHOLDER_VIDEO_MS)
-      this.setMode('closed')
+      this.holdGreetingEndFrame()
       return
     }
 
     await this.playVideo(this.greetingVideo, src, this.greetingLoaded, () => {
       this.greetingLoaded = true
     })
-    this.setMode('closed')
+    this.holdGreetingEndFrame()
   }
 
   async playGoodbye(): Promise<void> {
