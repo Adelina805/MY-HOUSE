@@ -7,6 +7,10 @@
 export const assets = {
   /** Shared wall texture behind the whole experience. Empty = scene media includes the wall. */
   wall: '',
+  splash: {
+    /** Full-bleed intro background. Shown once on page load, then fades to the door. */
+    background: '/media/doorstep/blue-seaweed.png',
+  },
   door: {
     /** Texture behind the doorway. Empty = solid --door-scene-bg. */
     wall: '/media/doorstep/wall.jpg',

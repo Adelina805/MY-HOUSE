@@ -1,12 +1,14 @@
 import './styles/global.css'
 import './styles/door.css'
 import './styles/candy.css'
+import './styles/splash.css'
 
 import { inject } from '@vercel/analytics'
 
 import { frame } from './config/composition'
 import { ExperienceController } from './core/experienceController'
 import { preloadBootImages, waitForNextPaint } from './core/preloadAssets'
+import { createSplashScreen, playSplashIntro } from './core/splashScreen'
 
 inject()
 
@@ -29,6 +31,9 @@ async function boot(app: HTMLDivElement): Promise<void> {
   applyFrameTokens()
   app.classList.add('app--booting')
 
+  const splash = createSplashScreen()
+  app.appendChild(splash)
+
   try {
     await preloadBootImages()
   } catch (error) {
@@ -39,6 +44,7 @@ async function boot(app: HTMLDivElement): Promise<void> {
   experience.start()
   await waitForNextPaint()
   app.classList.remove('app--booting')
+  await playSplashIntro(splash)
 }
 
 void boot(mount)

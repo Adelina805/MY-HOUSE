@@ -1,0 +1,54 @@
+.splash {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #1a4a8a;
+  background-image: var(--splash-background);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: auto;
+  will-change: opacity;
+}
+
+.splash__title {
+  margin: 0;
+  max-width: 92%;
+  color: #fff;
+  font-family: "Some Time Later", "Segoe Print", "Comic Sans MS", system-ui, sans-serif;
+  font-size: clamp(2.4rem, 5.6vw, 4.75rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-shadow: 0 2px 10px rgb(0 20 60 / 35%);
+  user-select: none;
+}
+
+.splash__break {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .splash {
+    align-items: center;
+    padding-bottom: 8vh;
+  }
+
+  .splash__title {
+    font-size: clamp(1.85rem, 8.2vw, 2.6rem);
+    line-height: 1.2;
+  }
+
+  .splash__space {
+    display: none;
+  }
+
+  .splash__break {
+    display: inline;
+  }
+}
