@@ -84,9 +84,12 @@ export class PerspectiveController {
   pause(): void {
     this.paused = true
     this.stopIdle()
-    if (!this.reducedMotion) {
-      this.returnToNeutral(0.35)
-    }
+    this.snapToNeutral()
+  }
+
+  snapToNeutral(): void {
+    gsap.killTweensOf(this.rig)
+    gsap.set(this.rig, { rotateX: 0, rotateY: 0, scale: 1 })
   }
 
   resume(): void {

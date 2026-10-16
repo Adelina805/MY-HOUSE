@@ -1,6 +1,7 @@
 import { assets } from '../../config/assets'
 
 const PLACEHOLDER_VIDEO_MS = 400
+const VIDEO_READY_TIMEOUT_MS = 8000
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -42,9 +43,15 @@ export class DoorMediaController {
     for (const video of [this.greetingVideo, this.goodbyeVideo]) {
       video.playsInline = true
       video.controls = false
-      video.preload = 'none'
       video.setAttribute('playsinline', '')
       video.setAttribute('webkit-playsinline', '')
+    }
+
+    this.goodbyeVideo.preload = 'none'
+    this.greetingVideo.preload = 'auto'
+    if (assets.door.greetingVideo) {
+      this.greetingVideo.src = assets.door.greetingVideo
+      this.greetingLoaded = true
     }
   }
 
@@ -65,8 +72,8 @@ export class DoorMediaController {
   }
 
   async playGreeting(): Promise<void> {
-    this.pauseAllVideos()
-    this.setMode('greeting')
+    this.goodbyeVideo.pause()
+    this.goodbyeVideo.currentTime = 0
 
     const src = assets.door.greetingVideo
     if (!src) {
@@ -74,6 +81,15 @@ export class DoorMediaController {
       this.holdGreetingEndFrame()
       return
     }
+
+    if (this.greetingVideo.getAttribute('src') !== src) {
+      this.greetingVideo.preload = 'auto'
+      this.greetingVideo.src = src
+      this.greetingLoaded = true
+    }
+
+    await this.waitForStartFrame(this.greetingVideo, src)
+    this.setMode('greeting')
 
     await this.playVideo(this.greetingVideo, src, this.greetingLoaded, () => {
       this.greetingLoaded = true
@@ -102,6 +118,49 @@ export class DoorMediaController {
     this.pauseAllVideos()
     this.greetingVideo.removeAttribute('src')
     this.goodbyeVideo.removeAttribute('src')
+  }
+
+  private waitForStartFrame(
+    video: HTMLVideoElement,
+    src: string,
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      let settled = false
+
+      const finish = () => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(timer)
+        video.removeEventListener('loadeddata', onData)
+        video.removeEventListener('canplay', onData)
+        video.removeEventListener('seeked', onSeeked)
+        video.removeEventListener('error', onError)
+        resolve()
+      }
+
+      const revealWhenAtStart = () => {
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return
+        if (video.currentTime > 0.05) {
+          video.addEventListener('seeked', onSeeked)
+          video.currentTime = 0
+          return
+        }
+        finish()
+      }
+
+      const onData = () => revealWhenAtStart()
+      const onSeeked = () => finish()
+      const onError = () => {
+        console.warn('Door video failed to load:', src)
+        finish()
+      }
+
+      const timer = window.setTimeout(finish, VIDEO_READY_TIMEOUT_MS)
+      video.addEventListener('loadeddata', onData)
+      video.addEventListener('canplay', onData)
+      video.addEventListener('error', onError)
+      revealWhenAtStart()
+    })
   }
 
   private pauseAllVideos(): void {
@@ -134,12 +193,16 @@ export class DoorMediaController {
       video.addEventListener('ended', onEnded)
       video.addEventListener('error', onError)
 
-      if (!alreadyLoaded || video.getAttribute('src') !== src) {
+      if (video.getAttribute('src') !== src) {
         video.src = src
+        onLoaded()
+      } else if (!alreadyLoaded) {
         onLoaded()
       }
 
-      video.currentTime = 0
+      if (video.currentTime > 0.05) {
+        video.currentTime = 0
+      }
       const playPromise = video.play()
       if (playPromise) {
         playPromise.catch(() => {

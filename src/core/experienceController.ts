@@ -91,11 +91,9 @@ export class ExperienceController {
     if (this.busy || this.state !== 'idle') return
     this.busy = true
     this.state = 'knocking'
+    this.door.snapPerspectiveToNeutral()
     this.door.setKnockEnabled(false)
     this.door.setPerspectiveEnabled(false)
-
-    await this.door.returnToNeutral()
-    await this.door.playKnock()
 
     this.state = 'greeting'
     await this.door.playGreeting()

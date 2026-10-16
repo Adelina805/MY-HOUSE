@@ -9,6 +9,7 @@ export interface DoorEnvironment {
   unmount(): void
   setHidden(hidden: boolean): void
   setPerspectiveEnabled(enabled: boolean): void
+  snapPerspectiveToNeutral(): void
   returnToNeutral(): Promise<void>
   playKnock(): Promise<void>
   playGreeting(): Promise<void>
@@ -150,6 +151,10 @@ export function createDoorEnvironment(): DoorEnvironment {
       } else {
         perspective.pause()
       }
+    },
+
+    snapPerspectiveToNeutral(): void {
+      perspective?.snapToNeutral()
     },
 
     returnToNeutral(): Promise<void> {
