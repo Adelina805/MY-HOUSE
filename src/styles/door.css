@@ -64,12 +64,24 @@
   will-change: transform;
 }
 
+.environment--door[data-wall] {
+  background: transparent;
+}
+
 .door__background {
   position: absolute;
   inset: 0;
   background: var(--door-scene-bg);
   pointer-events: none;
   z-index: 0;
+}
+
+.environment--door[data-wall] .door__background {
+  background-color: var(--door-scene-bg);
+  background-image: var(--door-wall-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Dark-gray frame around the doorway; extends past bottom of viewport */

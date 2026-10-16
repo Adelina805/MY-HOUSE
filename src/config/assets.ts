@@ -8,6 +8,8 @@ export const assets = {
   /** Shared wall texture behind the whole experience. Empty = scene media includes the wall. */
   wall: '',
   door: {
+    /** Texture behind the doorway. Empty = solid --door-scene-bg. */
+    wall: '/media/doorstep/wall.jpg',
     /** Closed door still (includes surrounding wall in frame). */
     image: '/media/doorstep/closed.png',
     greetingVideo: '/media/doorstep/hello.mp4',

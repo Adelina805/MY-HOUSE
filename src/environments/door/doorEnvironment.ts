@@ -51,6 +51,10 @@ export function createDoorEnvironment(): DoorEnvironment {
       env.className = 'environment environment--door'
       env.setAttribute('role', 'region')
       env.setAttribute('aria-label', 'Front door')
+      if (assets.door.wall) {
+        env.dataset.wall = ''
+        env.style.setProperty('--door-wall-image', `url("${assets.door.wall}")`)
+      }
 
       const viewport = document.createElement('div')
       viewport.className = 'door__viewport'

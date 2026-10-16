@@ -3,6 +3,7 @@ import { assets } from '../config/assets'
 function imageUrlsForBoot(): string[] {
   const urls: string[] = []
   if (assets.wall) urls.push(assets.wall)
+  if (assets.door.wall) urls.push(assets.door.wall)
   if (assets.door.image) urls.push(assets.door.image)
   if (assets.candy.image) urls.push(assets.candy.image)
   return [...new Set(urls)]
