@@ -2,6 +2,10 @@ import { assets } from '../../config/assets'
 
 const PLACEHOLDER_VIDEO_MS = 400
 const VIDEO_READY_TIMEOUT_MS = 8000
+const PLAY_START_TIMEOUT_MS = 5000
+const CANPLAY_RETRY_TIMEOUT_MS = 4000
+const PLAYBACK_FALLBACK_MS = 20_000
+const PLAYBACK_MAX_MS = 30_000
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -56,22 +60,29 @@ export class DoorMediaController {
     this.greetingVideo.preload = 'none'
   }
 
-  /** Call synchronously from the knock click so iOS keeps user activation for playback. */
+  /** Call synchronously from the knock click (before any await) for iOS playback. */
   primeGreetingPlayback(): void {
     const src = assets.door.greetingVideo
     if (!src) return
 
+    const video = this.greetingVideo
     this.ensureGreetingSource(src)
     this.setMode('greeting-loading')
-    const playPromise = this.greetingVideo.play()
-    if (playPromise) {
-      playPromise
-        .then(() => {
-          this.greetingVideo.pause()
-          this.greetingVideo.currentTime = 0
-        })
-        .catch(() => {})
+    video.muted = true
+    const playPromise = video.play()
+    if (!playPromise) {
+      video.muted = false
+      return
     }
+    void playPromise
+      .then(() => {
+        video.pause()
+        video.currentTime = 0
+      })
+      .catch(() => {})
+      .finally(() => {
+        video.muted = false
+      })
   }
 
   setMode(mode: DoorMediaMode): void {
@@ -101,15 +112,24 @@ export class DoorMediaController {
       return
     }
 
+    const video = this.greetingVideo
+    video.muted = false
+
     this.ensureGreetingSource(src)
     this.setMode('greeting-loading')
 
-    await this.waitForStartFrame(this.greetingVideo, src)
-    this.setMode('greeting')
+    await this.waitForStartFrame(video, src)
 
-    await this.playVideo(this.greetingVideo, src, this.greetingLoaded, () => {
-      this.greetingLoaded = true
-    })
+    const deadline = this.playbackDeadlineMs(video)
+    await Promise.race([
+      this.playVideo(video, src, this.greetingLoaded, () => {
+        this.greetingLoaded = true
+      }, {
+        onPlaying: () => this.setMode('greeting'),
+      }),
+      wait(deadline),
+    ])
+
     this.holdGreetingEndFrame()
   }
 
@@ -124,9 +144,14 @@ export class DoorMediaController {
       return
     }
 
-    await this.playVideo(this.goodbyeVideo, src, this.goodbyeLoaded, () => {
-      this.goodbyeLoaded = true
-    })
+    const video = this.goodbyeVideo
+    const deadline = this.playbackDeadlineMs(video)
+    await Promise.race([
+      this.playVideo(video, src, this.goodbyeLoaded, () => {
+        this.goodbyeLoaded = true
+      }),
+      wait(deadline),
+    ])
     this.setMode('closed')
   }
 
@@ -140,7 +165,16 @@ export class DoorMediaController {
     if (this.greetingVideo.getAttribute('src') === src) return
     this.greetingVideo.preload = 'auto'
     this.greetingVideo.src = src
+    this.greetingVideo.load()
     this.greetingLoaded = true
+  }
+
+  private playbackDeadlineMs(video: HTMLVideoElement): number {
+    const durationSec = video.duration
+    if (Number.isFinite(durationSec) && durationSec > 0) {
+      return Math.min(durationSec * 1000 + 2500, PLAYBACK_MAX_MS)
+    }
+    return PLAYBACK_FALLBACK_MS
   }
 
   private waitForStartFrame(
@@ -154,6 +188,7 @@ export class DoorMediaController {
         if (settled) return
         settled = true
         window.clearTimeout(timer)
+        window.clearTimeout(seekTimer)
         video.removeEventListener('loadeddata', onData)
         video.removeEventListener('canplay', onData)
         video.removeEventListener('seeked', onSeeked)
@@ -165,6 +200,7 @@ export class DoorMediaController {
         if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return
         if (video.currentTime > 0.05) {
           video.addEventListener('seeked', onSeeked)
+          seekTimer = window.setTimeout(finish, 2000)
           video.currentTime = 0
           return
         }
@@ -178,6 +214,7 @@ export class DoorMediaController {
         finish()
       }
 
+      let seekTimer = 0
       const timer = window.setTimeout(finish, VIDEO_READY_TIMEOUT_MS)
       video.addEventListener('loadeddata', onData)
       video.addEventListener('canplay', onData)
@@ -198,26 +235,85 @@ export class DoorMediaController {
     src: string,
     alreadyLoaded: boolean,
     onLoaded: () => void,
+    options?: { onPlaying?: () => void },
   ): Promise<void> {
     return new Promise((resolve) => {
-      const finish = () => {
+      let finished = false
+      let startWatchdog = 0
+      let playbackWatchdog = 0
+      let canplayRetryTimer = 0
+
+      const cleanup = () => {
+        window.clearTimeout(startWatchdog)
+        window.clearTimeout(playbackWatchdog)
+        window.clearTimeout(canplayRetryTimer)
         video.removeEventListener('ended', onEnded)
         video.removeEventListener('error', onError)
+        video.removeEventListener('playing', onPlaying)
+        video.removeEventListener('canplay', onCanplayRetry)
+      }
+
+      const finish = () => {
+        if (finished) return
+        finished = true
+        cleanup()
         video.pause()
         resolve()
       }
 
       const onEnded = () => finish()
+
       const onError = () => {
         console.warn('Door video failed to play:', src)
         finish()
       }
 
+      const armPlaybackWatchdog = () => {
+        window.clearTimeout(playbackWatchdog)
+        playbackWatchdog = window.setTimeout(() => {
+          console.warn('Door video playback timed out:', src)
+          finish()
+        }, this.playbackDeadlineMs(video))
+      }
+
+      const onPlaying = () => {
+        window.clearTimeout(startWatchdog)
+        options?.onPlaying?.()
+        armPlaybackWatchdog()
+      }
+
+      const onCanplayRetry = () => {
+        window.clearTimeout(canplayRetryTimer)
+        video.removeEventListener('canplay', onCanplayRetry)
+        void video.play().catch(() => onError())
+      }
+
+      const tryPlay = () => {
+        const playPromise = video.play()
+        if (!playPromise) return
+        void playPromise.catch(() => {
+          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            void video.play().catch(() => onError())
+            return
+          }
+          canplayRetryTimer = window.setTimeout(() => onError(), CANPLAY_RETRY_TIMEOUT_MS)
+          video.addEventListener('canplay', onCanplayRetry)
+        })
+      }
+
       video.addEventListener('ended', onEnded)
       video.addEventListener('error', onError)
+      video.addEventListener('playing', onPlaying)
+
+      startWatchdog = window.setTimeout(() => {
+        console.warn('Door video never started playing:', src)
+        finish()
+      }, PLAY_START_TIMEOUT_MS)
 
       if (video.getAttribute('src') !== src) {
+        video.preload = 'auto'
         video.src = src
+        video.load()
         onLoaded()
       } else if (!alreadyLoaded) {
         onLoaded()
@@ -227,23 +323,7 @@ export class DoorMediaController {
         video.currentTime = 0
       }
 
-      const startPlayback = () => {
-        const playPromise = video.play()
-        if (!playPromise) return
-        playPromise.catch(() => {
-          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-            void video.play().catch(() => onError())
-            return
-          }
-          const retry = () => {
-            video.removeEventListener('canplay', retry)
-            void video.play().catch(() => onError())
-          }
-          video.addEventListener('canplay', retry)
-        })
-      }
-
-      startPlayback()
+      tryPlay()
     })
   }
 }

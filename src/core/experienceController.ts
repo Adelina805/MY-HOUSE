@@ -94,7 +94,6 @@ export class ExperienceController {
     this.door.snapPerspectiveToNeutral()
     this.door.setKnockEnabled(false)
     this.door.setPerspectiveEnabled(false)
-    this.door.primeGreetingPlayback()
 
     this.state = 'greeting'
     await this.door.playGreeting()

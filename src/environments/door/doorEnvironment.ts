@@ -119,6 +119,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       perspective = new PerspectiveController(viewport, rig)
 
       knockBtn.addEventListener('click', () => {
+        media?.primeGreetingPlayback()
         onKnock?.()
       })
       restart.addEventListener('click', () => {
