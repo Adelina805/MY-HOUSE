@@ -29,7 +29,6 @@ function applyFrameTokens(): void {
 
 async function boot(app: HTMLDivElement): Promise<void> {
   applyFrameTokens()
-  app.classList.add('app--booting')
 
   const splash = createSplashScreen()
   app.appendChild(splash)
@@ -40,11 +39,15 @@ async function boot(app: HTMLDivElement): Promise<void> {
     console.warn('Image preload failed:', error)
   }
 
+  await waitForNextPaint()
+  await playSplashIntro(splash)
+
+  // Mount the door after the splash so greeting video preload matches pre-splash behavior.
+  app.classList.add('app--booting')
   const experience = new ExperienceController(app)
   experience.start()
   await waitForNextPaint()
   app.classList.remove('app--booting')
-  await playSplashIntro(splash)
 }
 
 void boot(mount)

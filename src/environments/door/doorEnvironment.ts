@@ -12,7 +12,6 @@ export interface DoorEnvironment {
   snapPerspectiveToNeutral(): void
   returnToNeutral(): Promise<void>
   playKnock(): Promise<void>
-  primeGreetingPlayback(): void
   playGreeting(): Promise<void>
   playGoodbye(): Promise<void>
   applyFinishedState(): void
@@ -119,7 +118,6 @@ export function createDoorEnvironment(): DoorEnvironment {
       perspective = new PerspectiveController(viewport, rig)
 
       knockBtn.addEventListener('click', () => {
-        media?.primeGreetingPlayback()
         onKnock?.()
       })
       restart.addEventListener('click', () => {
@@ -167,10 +165,6 @@ export function createDoorEnvironment(): DoorEnvironment {
       if (!scene) return
       playKnockSound()
       await playKnockAnimation(scene)
-    },
-
-    primeGreetingPlayback(): void {
-      media?.primeGreetingPlayback()
     },
 
     playGreeting(): Promise<void> {

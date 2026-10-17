@@ -53,7 +53,7 @@ button:focus-visible {
   background: var(--frame-color);
 }
 
-#app.app--booting .experience {
+#app.app--booting {
   visibility: hidden;
 }
 
