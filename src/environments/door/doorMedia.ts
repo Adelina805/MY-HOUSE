@@ -9,7 +9,12 @@ function wait(ms: number): Promise<void> {
   })
 }
 
-export type DoorMediaMode = 'closed' | 'greeting' | 'greeting-hold' | 'goodbye'
+export type DoorMediaMode =
+  | 'closed'
+  | 'greeting-loading'
+  | 'greeting'
+  | 'greeting-hold'
+  | 'goodbye'
 
 export class DoorMediaController {
   private readonly mediaRoot: HTMLElement
@@ -48,10 +53,24 @@ export class DoorMediaController {
     }
 
     this.goodbyeVideo.preload = 'none'
-    this.greetingVideo.preload = 'auto'
-    if (assets.door.greetingVideo) {
-      this.greetingVideo.src = assets.door.greetingVideo
-      this.greetingLoaded = true
+    this.greetingVideo.preload = 'none'
+  }
+
+  /** Call synchronously from the knock click so iOS keeps user activation for playback. */
+  primeGreetingPlayback(): void {
+    const src = assets.door.greetingVideo
+    if (!src) return
+
+    this.ensureGreetingSource(src)
+    this.setMode('greeting-loading')
+    const playPromise = this.greetingVideo.play()
+    if (playPromise) {
+      playPromise
+        .then(() => {
+          this.greetingVideo.pause()
+          this.greetingVideo.currentTime = 0
+        })
+        .catch(() => {})
     }
   }
 
@@ -82,11 +101,8 @@ export class DoorMediaController {
       return
     }
 
-    if (this.greetingVideo.getAttribute('src') !== src) {
-      this.greetingVideo.preload = 'auto'
-      this.greetingVideo.src = src
-      this.greetingLoaded = true
-    }
+    this.ensureGreetingSource(src)
+    this.setMode('greeting-loading')
 
     await this.waitForStartFrame(this.greetingVideo, src)
     this.setMode('greeting')
@@ -118,6 +134,13 @@ export class DoorMediaController {
     this.pauseAllVideos()
     this.greetingVideo.removeAttribute('src')
     this.goodbyeVideo.removeAttribute('src')
+  }
+
+  private ensureGreetingSource(src: string): void {
+    if (this.greetingVideo.getAttribute('src') === src) return
+    this.greetingVideo.preload = 'auto'
+    this.greetingVideo.src = src
+    this.greetingLoaded = true
   }
 
   private waitForStartFrame(
@@ -203,12 +226,24 @@ export class DoorMediaController {
       if (video.currentTime > 0.05) {
         video.currentTime = 0
       }
-      const playPromise = video.play()
-      if (playPromise) {
+
+      const startPlayback = () => {
+        const playPromise = video.play()
+        if (!playPromise) return
         playPromise.catch(() => {
-          onError()
+          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            void video.play().catch(() => onError())
+            return
+          }
+          const retry = () => {
+            video.removeEventListener('canplay', retry)
+            void video.play().catch(() => onError())
+          }
+          video.addEventListener('canplay', retry)
         })
       }
+
+      startPlayback()
     })
   }
 }
