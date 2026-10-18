@@ -120,11 +120,20 @@
   pointer-events: none;
 }
 
+.door__closed-image {
+  z-index: 2;
+}
+
+.door__video {
+  z-index: 1;
+}
+
 .door__video {
   opacity: 0;
   visibility: hidden;
 }
 
+.door__media[data-mode='greeting-loading'] .door__video--greeting,
 .door__media[data-mode='greeting'] .door__video--greeting,
 .door__media[data-mode='goodbye'] .door__video--goodbye,
 .door__media[data-mode='greeting-hold'] .door__video--greeting {
