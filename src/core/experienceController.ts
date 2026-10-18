@@ -9,6 +9,7 @@ import {
   createDoorEnvironment,
   type DoorEnvironment,
 } from '../environments/door/doorEnvironment'
+import { createHandsOverlay } from './handsOverlay'
 import type { ExperienceState } from './types'
 
 function prefersReducedMotion(): boolean {
@@ -52,6 +53,9 @@ export class ExperienceController {
     experience.appendChild(camera)
 
     this.host.appendChild(experience)
+
+    this.host.appendChild(createHandsOverlay())
+
     this.camera = camera
 
     this.door.mount(camera)

@@ -7,6 +7,7 @@ function imageUrlsForBoot(): string[] {
   if (assets.door.wall) urls.push(assets.door.wall)
   if (assets.door.image) urls.push(assets.door.image)
   if (assets.candy.image) urls.push(assets.candy.image)
+  urls.push(assets.hands.left, assets.hands.right)
   return [...new Set(urls)]
 }
 

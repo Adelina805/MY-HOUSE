@@ -1,0 +1,87 @@
+/* --------------------------------------------------------------------------
+   Foreground POV hands — tune sizing and placement via custom properties below.
+   -------------------------------------------------------------------------- */
+.hands-overlay {
+  --hands-width: clamp(7.75rem, 42vw, 13.5rem);
+  --hands-bottom: clamp(1.25rem, 6vh, 3.5rem);
+  --hands-left-inset: clamp(-2.75rem, -9vw, -1.25rem);
+  --hands-right-inset: clamp(-2.75rem, -9vw, -1.25rem);
+  --hands-left-rotate: 16deg;
+  --hands-right-rotate: -16deg;
+  --hands-idle-duration-left: 5.5s;
+  --hands-idle-duration-right: 6.25s;
+  --hands-idle-delay-left: 0s;
+  --hands-idle-delay-right: 0.35s;
+
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hands-overlay__hand {
+  position: absolute;
+  bottom: var(--hands-bottom);
+  width: var(--hands-width);
+  height: auto;
+  max-width: none;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: transform;
+}
+
+.hands-overlay__hand--left {
+  left: var(--hands-left-inset);
+  transform: rotate(var(--hands-left-rotate));
+  animation: hands-idle-left var(--hands-idle-duration-left) ease-in-out infinite;
+  animation-delay: var(--hands-idle-delay-left);
+}
+
+.hands-overlay__hand--right {
+  right: var(--hands-right-inset);
+  transform: rotate(var(--hands-right-rotate));
+  animation: hands-idle-right var(--hands-idle-duration-right) ease-in-out infinite;
+  animation-delay: var(--hands-idle-delay-right);
+}
+
+@keyframes hands-idle-left {
+  0%,
+  100% {
+    transform: rotate(var(--hands-left-rotate)) translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: rotate(var(--hands-left-rotate)) translate3d(0, -5px, 0);
+  }
+}
+
+@keyframes hands-idle-right {
+  0%,
+  100% {
+    transform: rotate(var(--hands-right-rotate)) translate3d(0, -2px, 0);
+  }
+
+  50% {
+    transform: rotate(var(--hands-right-rotate)) translate3d(0, -7px, 0);
+  }
+}
+
+@media (min-width: 481px) {
+  .hands-overlay {
+    --hands-width: clamp(15rem, 32vw, 26rem);
+    --hands-bottom: clamp(-0.25rem, 2.5vh, 1.25rem);
+    --hands-left-inset: clamp(-4rem, -11vw, -2rem);
+    --hands-right-inset: clamp(-4rem, -11vw, -2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hands-overlay__hand--left,
+  .hands-overlay__hand--right {
+    animation: none;
+  }
+}

@@ -2,6 +2,7 @@ import './styles/global.css'
 import './styles/door.css'
 import './styles/candy.css'
 import './styles/splash.css'
+import './styles/hands.css'
 
 import { inject } from '@vercel/analytics'
 

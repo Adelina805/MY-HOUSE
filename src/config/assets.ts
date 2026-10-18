@@ -22,6 +22,10 @@ export const assets = {
   candy: {
     image: '/media/candy/bowl.png',
   },
+  hands: {
+    left: '/media/hands/left-hand.png',
+    right: '/media/hands/right-hand.png',
+  },
   audio: {
     /** Knock sound. Empty = silent knock animation only. */
     knock: '',
