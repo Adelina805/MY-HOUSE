@@ -1,4 +1,5 @@
 import { assets } from '../../config/assets'
+import { registerMediaElement, restoreMediaMute } from '../../core/soundState'
 
 const PLACEHOLDER_VIDEO_MS = 400
 const VIDEO_READY_TIMEOUT_MS = 8000
@@ -30,6 +31,13 @@ export class DoorMediaController {
   private goodbyeLoaded = false
   /** Once real greeting playback starts, ignore the muted prime's pause. */
   private greetingPrimeSettled = false
+  private unregisterGreetingSound: (() => void) | null = null
+  private unregisterGoodbyeSound: (() => void) | null = null
+  private skipActivePlayback: (() => void) | null = null
+  private onSkipVisibleChange: ((visible: boolean) => void) | null = null
+  private onCaptionVideoChange:
+    | ((video: HTMLVideoElement | null, vttUrl: string | null) => void)
+    | null = null
 
   constructor(mediaRoot: HTMLElement) {
     this.mediaRoot = mediaRoot
@@ -58,6 +66,18 @@ export class DoorMediaController {
       video.setAttribute('webkit-playsinline', '')
     }
 
+    this.attachCaptionTrack(
+      this.greetingVideo,
+      assets.door.greetingCaptions,
+    )
+    this.attachCaptionTrack(
+      this.goodbyeVideo,
+      assets.door.goodbyeCaptions,
+    )
+
+    this.unregisterGreetingSound = registerMediaElement(this.greetingVideo)
+    this.unregisterGoodbyeSound = registerMediaElement(this.goodbyeVideo)
+
     this.goodbyeVideo.preload = 'none'
     this.greetingVideo.preload = 'none'
     if (assets.door.greetingVideo) {
@@ -77,7 +97,7 @@ export class DoorMediaController {
     video.muted = true
     const playPromise = video.play()
     if (!playPromise) {
-      video.muted = false
+      restoreMediaMute(video)
       return
     }
     void playPromise
@@ -89,9 +109,23 @@ export class DoorMediaController {
       .catch(() => {})
       .finally(() => {
         if (!this.greetingPrimeSettled) {
-          video.muted = false
+          restoreMediaMute(video)
         }
       })
+  }
+
+  setSkipVisibleHandler(handler: (visible: boolean) => void): void {
+    this.onSkipVisibleChange = handler
+  }
+
+  setCaptionVideoHandler(
+    handler: (video: HTMLVideoElement | null, vttUrl: string | null) => void,
+  ): void {
+    this.onCaptionVideoChange = handler
+  }
+
+  requestSkip(): void {
+    this.skipActivePlayback?.()
   }
 
   setMode(mode: DoorMediaMode): void {
@@ -122,7 +156,7 @@ export class DoorMediaController {
     }
 
     const video = this.greetingVideo
-    video.muted = false
+    restoreMediaMute(video)
 
     this.ensureGreetingSource(src)
     this.setMode('greeting-loading')
@@ -140,6 +174,7 @@ export class DoorMediaController {
         },
         {
           onPlaying: () => this.setMode('greeting'),
+          captionsUrl: assets.door.greetingCaptions,
         },
       ),
       wait(deadline),
@@ -162,18 +197,65 @@ export class DoorMediaController {
     const video = this.goodbyeVideo
     const deadline = this.playbackDeadlineMs(video)
     await Promise.race([
-      this.playVideo(video, src, this.goodbyeLoaded, () => {
-        this.goodbyeLoaded = true
-      }),
+      this.playVideo(
+        video,
+        src,
+        this.goodbyeLoaded,
+        () => {
+          this.goodbyeLoaded = true
+        },
+        { captionsUrl: assets.door.goodbyeCaptions },
+      ),
       wait(deadline),
     ])
     this.setMode('closed')
   }
 
   destroy(): void {
+    this.clearCaptionVideo()
+    this.setSkipVisible(false)
+    this.skipActivePlayback = null
+    this.unregisterGreetingSound?.()
+    this.unregisterGoodbyeSound?.()
+    this.unregisterGreetingSound = null
+    this.unregisterGoodbyeSound = null
     this.pauseAllVideos()
     this.greetingVideo.removeAttribute('src')
     this.goodbyeVideo.removeAttribute('src')
+  }
+
+  private attachCaptionTrack(
+    video: HTMLVideoElement,
+    trackUrl: string,
+  ): void {
+    if (!trackUrl) return
+    const track = document.createElement('track')
+    track.kind = 'captions'
+    track.srclang = 'en'
+    track.label = 'English'
+    track.src = trackUrl
+    track.default = true
+    video.appendChild(track)
+    video.addEventListener('loadedmetadata', () => {
+      for (const textTrack of video.textTracks) {
+        textTrack.mode = 'hidden'
+      }
+    })
+  }
+
+  private setSkipVisible(visible: boolean): void {
+    this.onSkipVisibleChange?.(visible)
+  }
+
+  private clearCaptionVideo(): void {
+    this.onCaptionVideoChange?.(null, null)
+  }
+
+  private notifyCaptionVideo(
+    video: HTMLVideoElement,
+    vttUrl: string | null,
+  ): void {
+    this.onCaptionVideoChange?.(video, vttUrl)
   }
 
   private ensureGreetingSource(src: string): void {
@@ -250,7 +332,7 @@ export class DoorMediaController {
     src: string,
     alreadyLoaded: boolean,
     onLoaded: () => void,
-    options?: { onPlaying?: () => void },
+    options?: { onPlaying?: () => void; captionsUrl?: string },
   ): Promise<void> {
     return new Promise((resolve) => {
       let finished = false
@@ -272,9 +354,14 @@ export class DoorMediaController {
         if (finished) return
         finished = true
         cleanup()
+        this.skipActivePlayback = null
+        this.setSkipVisible(false)
+        this.clearCaptionVideo()
         video.pause()
         resolve()
       }
+
+      this.skipActivePlayback = finish
 
       const onEnded = () => finish()
 
@@ -294,6 +381,8 @@ export class DoorMediaController {
       const onPlaying = () => {
         window.clearTimeout(startWatchdog)
         options?.onPlaying?.()
+        this.setSkipVisible(true)
+        this.notifyCaptionVideo(video, options?.captionsUrl ?? null)
         armPlaybackWatchdog()
       }
 
@@ -305,7 +394,7 @@ export class DoorMediaController {
 
       const tryPlay = () => {
         this.greetingPrimeSettled = true
-        video.muted = false
+        restoreMediaMute(video)
         const playPromise = video.play()
         if (!playPromise) return
         void playPromise.catch(() => {

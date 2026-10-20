@@ -9,6 +9,10 @@ import {
   createDoorEnvironment,
   type DoorEnvironment,
 } from '../environments/door/doorEnvironment'
+import {
+  createAccessibilityControls,
+  type AccessibilityControls,
+} from './accessibilityControls'
 import { createHandsOverlay } from './handsOverlay'
 import type { ExperienceState } from './types'
 
@@ -23,6 +27,7 @@ export class ExperienceController {
   private candy: CandyEnvironment
   private state: ExperienceState = 'idle'
   private busy = false
+  private controls: AccessibilityControls | null = null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -56,6 +61,13 @@ export class ExperienceController {
 
     this.host.appendChild(createHandsOverlay())
 
+    const controls = createAccessibilityControls({
+      onSkip: () => this.handleSkip(),
+    })
+    this.controls = controls
+    this.host.appendChild(controls.root)
+    this.host.appendChild(controls.captions.element)
+
     this.camera = camera
 
     this.door.mount(camera)
@@ -66,6 +78,14 @@ export class ExperienceController {
     })
     this.door.bindRestartHandler(() => {
       void this.handleRestart()
+    })
+    this.door.bindMediaControls({
+      onSkipVisible: (visible) => {
+        this.controls?.setSkipVisible(visible)
+      },
+      onCaptionVideo: (video, vttUrl) => {
+        this.controls?.attachCaptions(video, vttUrl)
+      },
     })
     this.candy.bindTakeHandler(() => {
       void this.handleTakeCandy()
@@ -79,7 +99,13 @@ export class ExperienceController {
     gsap.set(this.camera, { y: 0 })
   }
 
+  showControls(): void {
+    this.controls?.show()
+  }
+
   destroy(): void {
+    this.controls?.destroy()
+    this.controls = null
     gsap.killTweensOf(this.camera)
     const doorScene = this.door.getSceneElement()
     const candyScene = this.candy.getSceneElement()
@@ -122,6 +148,11 @@ export class ExperienceController {
     this.state = 'finished'
     this.door.applyFinishedState()
     this.busy = false
+  }
+
+  private handleSkip(): void {
+    if (this.state !== 'greeting' && this.state !== 'goodbye') return
+    this.door.skipActiveVideo()
   }
 
   private async handleRestart(): Promise<void> {

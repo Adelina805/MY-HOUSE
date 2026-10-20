@@ -1,0 +1,112 @@
+/* --------------------------------------------------------------------------
+   Accessibility controls — tune placement via custom properties on #app.
+   -------------------------------------------------------------------------- */
+.experience-controls {
+  --controls-inset-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  --controls-inset-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  --controls-inset-left: max(0.5rem, env(safe-area-inset-left, 0px));
+  --controls-gap: 0.35rem;
+  --controls-btn-size: 2.25rem;
+  --controls-btn-bg: #f7f5f0;
+  --controls-btn-color: #3a3a3a;
+  --controls-btn-radius: 8px;
+  --controls-btn-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.experience-controls[hidden] {
+  display: none;
+}
+
+.experience-controls__cluster {
+  position: absolute;
+  top: var(--controls-inset-top);
+  display: flex;
+  flex-direction: column;
+  gap: var(--controls-gap);
+  pointer-events: none;
+}
+
+.experience-controls__cluster--start {
+  left: var(--controls-inset-left);
+}
+
+.experience-controls__cluster--end {
+  right: var(--controls-inset-right);
+}
+
+.experience-controls__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--controls-btn-size);
+  height: var(--controls-btn-size);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgb(58 58 58 / 12%);
+  border-radius: var(--controls-btn-radius);
+  background: var(--controls-btn-bg);
+  color: var(--controls-btn-color);
+  box-shadow: var(--controls-btn-shadow);
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: opacity 0.2s ease, background-color 0.15s ease;
+}
+
+.experience-controls__btn svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+
+.experience-controls__btn--skip {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.experience-controls__btn--skip[data-visible='true'] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.experience-controls__btn--cc[data-active='true'] {
+  background: #ebe6dc;
+}
+
+.experience-controls__btn:focus-visible {
+  outline: 2px solid #3a3a3a;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experience-controls__btn {
+    transition: none;
+  }
+}
+
+.experience-captions {
+  position: absolute;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+  z-index: 19;
+  transform: translateX(-50%);
+  max-width: min(92%, 28rem);
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  background: rgb(20 20 20 / 82%);
+  color: #f7f5f0;
+  font-size: clamp(0.875rem, 2.8vw, 1rem);
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  white-space: pre-line;
+}
+
+.experience-captions[hidden] {
+  display: none;
+}

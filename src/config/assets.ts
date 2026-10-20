@@ -18,6 +18,8 @@ export const assets = {
     image: '/media/doorstep/closed.png',
     greetingVideo: '/media/doorstep/hello.mp4',
     goodbyeVideo: '/media/doorstep/goodbye.mp4',
+    greetingCaptions: '/captions/hello.vtt',
+    goodbyeCaptions: '/captions/goodbye.vtt',
   },
   candy: {
     image: '/media/candy/bowl.png',

@@ -1,4 +1,5 @@
 import { assets } from '../../config/assets'
+import { registerMediaElement, restoreMediaMute } from '../../core/soundState'
 import { movement } from '../../config/movement'
 import { DoorMediaController } from './doorMedia'
 import { playKnockAnimation } from './knockAnimation'
@@ -23,6 +24,14 @@ export interface DoorEnvironment {
   resetSceneTransform(): void
   prepareForGoodbye(): void
   clearGreetingHold(): void
+  skipActiveVideo(): void
+  bindMediaControls(handlers: {
+    onSkipVisible: (visible: boolean) => void
+    onCaptionVideo: (
+      video: HTMLVideoElement | null,
+      vttUrl: string | null,
+    ) => void
+  }): void
 }
 
 export function createDoorEnvironment(): DoorEnvironment {
@@ -35,13 +44,16 @@ export function createDoorEnvironment(): DoorEnvironment {
   let onKnock: (() => void) | null = null
   let onRestart: (() => void) | null = null
   let knockAudio: HTMLAudioElement | null = null
+  let unregisterKnockSound: (() => void) | null = null
 
   const playKnockSound = (): void => {
     const src = assets.audio.knock
     if (!src) return
     if (!knockAudio) {
       knockAudio = new Audio(src)
+      unregisterKnockSound = registerMediaElement(knockAudio)
     }
+    restoreMediaMute(knockAudio)
     knockAudio.currentTime = 0
     void knockAudio.play().catch(() => {})
   }
@@ -133,6 +145,8 @@ export function createDoorEnvironment(): DoorEnvironment {
       media = null
       knockTarget = null
       restartBtn = null
+      unregisterKnockSound?.()
+      unregisterKnockSound = null
       knockAudio = null
       scene = null
       root?.remove()
@@ -226,6 +240,15 @@ export function createDoorEnvironment(): DoorEnvironment {
 
     clearGreetingHold(): void {
       media?.showClosed()
+    },
+
+    skipActiveVideo(): void {
+      media?.requestSkip()
+    },
+
+    bindMediaControls(handlers): void {
+      media?.setSkipVisibleHandler(handlers.onSkipVisible)
+      media?.setCaptionVideoHandler(handlers.onCaptionVideo)
     },
   }
 }

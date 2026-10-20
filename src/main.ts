@@ -3,6 +3,7 @@ import './styles/door.css'
 import './styles/candy.css'
 import './styles/splash.css'
 import './styles/hands.css'
+import './styles/controls.css'
 
 import { inject } from '@vercel/analytics'
 
@@ -46,6 +47,7 @@ async function boot(app: HTMLDivElement): Promise<void> {
   await waitForNextPaint()
   app.classList.remove('app--booting')
   await playSplashIntro(splash)
+  experience.showControls()
 }
 
 void boot(mount)
