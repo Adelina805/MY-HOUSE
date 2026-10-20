@@ -1,6 +1,11 @@
 /* --------------------------------------------------------------------------
    Accessibility controls — tune placement via custom properties on #app.
+   Caption bottom spacing: --captions-bottom-clearance on #app (20–32px typical).
    -------------------------------------------------------------------------- */
+#app {
+  --captions-bottom-clearance: 1.75rem;
+}
+
 .experience-controls {
   --controls-inset-top: max(0.5rem, env(safe-area-inset-top, 0px));
   --controls-inset-right: max(0.5rem, env(safe-area-inset-right, 0px));
@@ -114,12 +119,15 @@
 }
 
 .experience-captions {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
-  z-index: 19;
+  bottom: calc(
+    env(safe-area-inset-bottom, 0px) + var(--frame-thickness, 0px) +
+      var(--captions-bottom-clearance, 1.75rem)
+  );
+  z-index: 21;
   transform: translateX(-50%);
-  max-width: min(92%, 28rem);
+  max-width: min(92vw, 28rem);
   padding: 0.4rem 0.65rem;
   border-radius: 0;
   background: #fff;

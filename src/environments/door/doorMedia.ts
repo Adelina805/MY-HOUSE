@@ -236,11 +236,16 @@ export class DoorMediaController {
     track.src = trackUrl
     track.default = true
     video.appendChild(track)
-    video.addEventListener('loadedmetadata', () => {
+
+    const hideNativeCaptions = (): void => {
       for (const textTrack of video.textTracks) {
         textTrack.mode = 'hidden'
       }
-    })
+    }
+
+    video.textTracks.addEventListener('addtrack', hideNativeCaptions)
+    video.addEventListener('loadedmetadata', hideNativeCaptions)
+    hideNativeCaptions()
   }
 
   private setSkipVisible(visible: boolean): void {

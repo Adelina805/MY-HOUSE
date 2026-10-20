@@ -123,7 +123,7 @@ export function createAccessibilityControls(
       skipBtn.tabIndex = visible ? 0 : -1
     },
     attachCaptions(video: HTMLVideoElement | null, vttUrl: string | null): void {
-      void captions.attach(video, vttUrl)
+      captions.attach(video, vttUrl)
     },
     destroy(): void {
       unsubscribeSound()
