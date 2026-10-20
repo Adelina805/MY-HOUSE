@@ -52,6 +52,17 @@
   animation: none !important;
 }
 
+.hands-overlay__hand--rummaging {
+  animation: none !important;
+}
+
+.hands-overlay--candy-rummage .hands-overlay__hand--left,
+.hands-overlay--candy-rummage .hands-overlay__hand--right {
+  animation: none !important;
+  /* Let inline transform from rummage controller drive placement */
+  transform: unset;
+}
+
 @keyframes hands-idle-left {
   0%,
   100% {

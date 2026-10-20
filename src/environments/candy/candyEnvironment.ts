@@ -11,6 +11,8 @@ export interface CandyEnvironment {
   reset(): void
   getSceneElement(): HTMLElement | null
   resetSceneTransform(): void
+  getBowlTarget(): HTMLElement | null
+  getObjectsRoot(): HTMLElement | null
 }
 
 function prefersReducedMotion(): boolean {
@@ -21,6 +23,7 @@ export function createCandyEnvironment(): CandyEnvironment {
   let root: HTMLElement | null = null
   let scene: HTMLElement | null = null
   let takeTarget: HTMLButtonElement | null = null
+  let objectsRoot: HTMLElement | null = null
   let onTake: (() => void) | null = null
   let interactive = true
 
@@ -48,11 +51,16 @@ export function createCandyEnvironment(): CandyEnvironment {
         sceneEl.appendChild(img)
       }
 
+      const objectsEl = document.createElement('div')
+      objectsEl.className = 'candy__objects'
+      objectsEl.setAttribute('aria-hidden', 'true')
+      sceneEl.appendChild(objectsEl)
+
       const takeBtn = document.createElement('button')
       takeBtn.type = 'button'
       takeBtn.className = 'candy__take-target'
-      takeBtn.setAttribute('aria-label', 'Take a piece of candy')
-      takeBtn.innerHTML = `<span class="candy__sr-only">Take a piece of candy</span>`
+      takeBtn.setAttribute('aria-label', 'Rummage in the candy bowl')
+      takeBtn.innerHTML = `<span class="candy__sr-only">Rummage in the candy bowl</span>`
 
       takeBtn.addEventListener('click', () => {
         if (!interactive) return
@@ -67,11 +75,13 @@ export function createCandyEnvironment(): CandyEnvironment {
       root = env
       scene = sceneEl
       takeTarget = takeBtn
+      objectsRoot = objectsEl
     },
 
     unmount(): void {
       scene = null
       takeTarget = null
+      objectsRoot = null
       root?.remove()
       root = null
     },
@@ -86,6 +96,9 @@ export function createCandyEnvironment(): CandyEnvironment {
       interactive = value
       if (takeTarget) {
         takeTarget.disabled = !value
+      }
+      if (root) {
+        root.dataset.interactive = value ? 'true' : 'false'
       }
     },
 
@@ -134,6 +147,14 @@ export function createCandyEnvironment(): CandyEnvironment {
     resetSceneTransform(): void {
       if (!scene) return
       gsap.set(scene, { clearProps: 'all' })
+    },
+
+    getBowlTarget(): HTMLElement | null {
+      return takeTarget
+    },
+
+    getObjectsRoot(): HTMLElement | null {
+      return objectsRoot
     },
   }
 }

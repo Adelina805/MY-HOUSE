@@ -42,6 +42,33 @@
   pointer-events: none;
 }
 
+.candy__objects {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(58vw, 340px);
+  height: min(58vw, 340px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+}
+
+.candy__object {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.candy__object--circle {
+  border-radius: 50%;
+}
+
+.candy__object--square {
+  border-radius: 3px;
+}
+
 .candy__take-target {
   position: absolute;
   left: 50%;
@@ -54,7 +81,12 @@
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  z-index: 1;
+  z-index: 3;
+  touch-action: none;
+}
+
+.environment--candy[data-interactive='true'] .candy__viewport {
+  touch-action: none;
 }
 
 .candy__take-target:disabled {
@@ -84,6 +116,7 @@
     --candy-scene-position: center 48%;
   }
 
+  .candy__objects,
   .candy__take-target {
     width: min(72vw, 320px);
     height: min(72vw, 320px);

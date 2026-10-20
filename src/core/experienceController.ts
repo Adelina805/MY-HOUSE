@@ -6,6 +6,10 @@ import {
   type CandyEnvironment,
 } from '../environments/candy/candyEnvironment'
 import {
+  createCandyRummageController,
+  type CandyRummageController,
+} from '../environments/candy/candyRummage'
+import {
   createDoorEnvironment,
   type DoorEnvironment,
 } from '../environments/door/doorEnvironment'
@@ -41,6 +45,7 @@ export class ExperienceController {
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
   private controls: AccessibilityControls | null = null
+  private candyRummage: CandyRummageController | null = null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -124,7 +129,17 @@ export class ExperienceController {
       },
     })
     this.candy.bindTakeHandler(() => {
+      const rummageState = this.candyRummage?.getState()
+      if (rummageState === 'plunging' || rummageState === 'rummaging') return
       void this.handleTakeCandy()
+    })
+
+    this.candyRummage = createCandyRummageController({
+      overlay: hands.element,
+      leftHand: hands.leftHand,
+      rightHand: hands.rightHand,
+      getBowlTarget: () => this.candy.getBowlTarget(),
+      getObjectsRoot: () => this.candy.getObjectsRoot(),
     })
 
     this.door.setHidden(false)
@@ -150,6 +165,8 @@ export class ExperienceController {
     if (doorScene) gsap.killTweensOf(doorScene)
     if (candyScene) gsap.killTweensOf(candyScene)
     this.door.unmount()
+    this.candyRummage?.dispose()
+    this.candyRummage = null
     this.candy.unmount()
     this.host.replaceChildren()
     this.camera = null
@@ -208,6 +225,7 @@ export class ExperienceController {
     this.state = 'waiting-for-candy'
     await this.animateTransitionToCandy()
     this.candy.setInteractive(true)
+    this.candyRummage?.bind()
     this.busy = false
   }
 
@@ -285,6 +303,7 @@ export class ExperienceController {
 
     gsap.set(this.camera, { y: 0 })
     this.door.setHidden(false)
+    this.candyRummage?.reset()
     this.candy.setHidden(true)
     this.candy.reset()
     this.door.resetToIdle()
@@ -390,6 +409,7 @@ export class ExperienceController {
         outDuration * 0.82,
       )
 
+    this.candyRummage?.dispose()
     this.candy.setHidden(true)
     this.candy.resetSceneTransform()
     this.door.resetSceneTransform()
