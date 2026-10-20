@@ -15,7 +15,7 @@ import {
 } from './accessibilityControls'
 import {
   handsKnockTiming,
-  playRightHandKnock,
+  RightHandKnockController,
 } from './handsKnockAnimation'
 import { createHandsOverlay, type HandsOverlay } from './handsOverlay'
 import type { ExperienceState } from './types'
@@ -35,7 +35,9 @@ export class ExperienceController {
   private state: ExperienceState = 'idle'
   private busy = false
   private knockCount = 0
-  private knockAnimating = false
+  private knockController: RightHandKnockController | null = null
+  private greetingInactivityTimer: ReturnType<typeof setTimeout> | null = null
+  private greetingTransitionStarted = false
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
   private controls: AccessibilityControls | null = null
@@ -81,6 +83,20 @@ export class ExperienceController {
     this.knockStatusEl = knockStatus
     this.host.appendChild(knockStatus)
 
+    this.knockController = new RightHandKnockController(
+      hands.element,
+      hands.rightHand,
+    )
+    this.knockController.setOnHandReturnedToIdle(() => {
+      if (
+        this.knockCount < KNOCKS_REQUIRED &&
+        !this.greetingTransitionStarted &&
+        this.state === 'idle'
+      ) {
+        this.door.setPerspectiveEnabled(true)
+      }
+    })
+
     const controls = createAccessibilityControls({
       onSkip: () => this.handleSkip(),
     })
@@ -94,7 +110,7 @@ export class ExperienceController {
     this.candy.mount(camera)
 
     this.door.bindKnockHandler((point) => {
-      void this.handleKnock(point)
+      this.handleKnock(point)
     })
     this.door.bindRestartHandler(() => {
       void this.handleRestart()
@@ -127,8 +143,9 @@ export class ExperienceController {
     this.controls?.destroy()
     this.controls = null
     gsap.killTweensOf(this.camera)
-    const rightHand = this.hands?.rightHand
-    if (rightHand) gsap.killTweensOf(rightHand)
+    this.clearGreetingInactivityTimer()
+    this.knockController?.dispose()
+    this.knockController = null
     const doorScene = this.door.getSceneElement()
     const candyScene = this.candy.getSceneElement()
     if (doorScene) gsap.killTweensOf(doorScene)
@@ -143,43 +160,40 @@ export class ExperienceController {
 
   private announceKnock(count: number): void {
     if (!this.knockStatusEl) return
+    if (count > KNOCKS_REQUIRED) return
     this.knockStatusEl.textContent = `Knock ${count} of ${KNOCKS_REQUIRED}`
   }
 
-  private async handleKnock(point: KnockPoint): Promise<void> {
-    if (this.busy || this.knockAnimating || this.state !== 'idle') return
-    if (this.knockCount >= KNOCKS_REQUIRED) return
+  private clearGreetingInactivityTimer(): void {
+    if (this.greetingInactivityTimer !== null) {
+      clearTimeout(this.greetingInactivityTimer)
+      this.greetingInactivityTimer = null
+    }
+  }
 
-    const hands = this.hands
-    if (!hands) return
+  private scheduleGreetingInactivityCheck(): void {
+    this.clearGreetingInactivityTimer()
+    const delayMs = prefersReducedMotion()
+      ? 200
+      : handsKnockTiming.greetingInactivity * 1000
+    this.greetingInactivityTimer = setTimeout(() => {
+      this.greetingInactivityTimer = null
+      void this.beginGreetingTransition()
+    }, delayMs)
+  }
 
-    this.knockAnimating = true
-    this.door.snapPerspectiveToNeutral()
-    this.door.setPerspectiveEnabled(false)
-
-    const nextCount = this.knockCount + 1
-    this.announceKnock(nextCount)
-
-    await playRightHandKnock(hands.element, hands.rightHand, point, () => {
-      this.door.playKnockStrike()
-      void this.door.playKnockFeedback()
-    })
-
-    this.knockCount = nextCount
-    this.knockAnimating = false
-
-    if (this.knockCount < KNOCKS_REQUIRED) {
-      this.door.setPerspectiveEnabled(true)
+  private async beginGreetingTransition(): Promise<void> {
+    if (this.greetingTransitionStarted || this.busy || this.state !== 'idle') {
       return
     }
+    if (this.knockCount < KNOCKS_REQUIRED) return
 
+    this.greetingTransitionStarted = true
     this.door.setKnockEnabled(false)
     this.busy = true
+    this.knockController?.cancelIdleReturn()
 
-    const delayMs = prefersReducedMotion()
-      ? 120
-      : handsKnockTiming.beforeGreeting * 1000
-    await new Promise((resolve) => setTimeout(resolve, delayMs))
+    await this.knockController?.returnToOpenHand()
 
     if (this.state !== 'idle') {
       this.busy = false
@@ -193,6 +207,33 @@ export class ExperienceController {
     await this.animateTransitionToCandy()
     this.candy.setInteractive(true)
     this.busy = false
+  }
+
+  private handleKnock(point: KnockPoint): void {
+    if (this.busy || this.greetingTransitionStarted || this.state !== 'idle') {
+      return
+    }
+
+    const controller = this.knockController
+    if (!controller) return
+
+    if (this.knockCount === 0) {
+      this.door.snapPerspectiveToNeutral()
+      this.door.setPerspectiveEnabled(false)
+    }
+
+    this.knockCount += 1
+    this.announceKnock(this.knockCount)
+
+    controller.knock(point, () => {
+      this.door.playKnockStrike()
+      void this.door.playKnockFeedback()
+    })
+    controller.scheduleIdleReturn()
+
+    if (this.knockCount >= KNOCKS_REQUIRED) {
+      this.scheduleGreetingInactivityCheck()
+    }
   }
 
   private async handleTakeCandy(): Promise<void> {
@@ -226,8 +267,25 @@ export class ExperienceController {
     this.candy.reset()
     this.door.resetToIdle()
     this.door.setKnockEnabled(true)
+    this.clearGreetingInactivityTimer()
+    this.greetingTransitionStarted = false
     this.knockCount = 0
-    this.knockAnimating = false
+    this.knockController?.dispose()
+    if (this.hands) {
+      this.knockController = new RightHandKnockController(
+        this.hands.element,
+        this.hands.rightHand,
+      )
+      this.knockController.setOnHandReturnedToIdle(() => {
+        if (
+          this.knockCount < KNOCKS_REQUIRED &&
+          !this.greetingTransitionStarted &&
+          this.state === 'idle'
+        ) {
+          this.door.setPerspectiveEnabled(true)
+        }
+      })
+    }
     if (this.knockStatusEl) this.knockStatusEl.textContent = ''
     this.state = 'idle'
     this.busy = false

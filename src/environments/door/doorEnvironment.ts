@@ -62,19 +62,26 @@ export function createDoorEnvironment(): DoorEnvironment {
   let restartBtn: HTMLButtonElement | null = null
   let onKnock: ((point: KnockPoint) => void) | null = null
   let onRestart: (() => void) | null = null
-  let knockAudio: HTMLAudioElement | null = null
-  let unregisterKnockSound: (() => void) | null = null
+  const knockAudioPool: HTMLAudioElement[] = []
+  const knockAudioUnregister: (() => void)[] = []
+  const KNOCK_AUDIO_POOL_SIZE = 5
 
   const playKnockSound = (): void => {
     const src = assets.audio.knock
     if (!src) return
-    if (!knockAudio) {
-      knockAudio = new Audio(src)
-      unregisterKnockSound = registerMediaElement(knockAudio)
+
+    while (knockAudioPool.length < KNOCK_AUDIO_POOL_SIZE) {
+      const audio = new Audio(src)
+      knockAudioUnregister.push(registerMediaElement(audio))
+      knockAudioPool.push(audio)
     }
-    restoreMediaMute(knockAudio)
-    knockAudio.currentTime = 0
-    void knockAudio.play().catch(() => {})
+
+    const idle =
+      knockAudioPool.find((audio) => audio.paused || audio.ended) ??
+      knockAudioPool[0]
+    restoreMediaMute(idle)
+    idle.currentTime = 0
+    void idle.play().catch(() => {})
   }
 
   return {
@@ -166,9 +173,11 @@ export function createDoorEnvironment(): DoorEnvironment {
       knockTarget = null
       restartBtn = null
       mediaRoot = null
-      unregisterKnockSound?.()
-      unregisterKnockSound = null
-      knockAudio = null
+      for (const unregister of knockAudioUnregister) {
+        unregister()
+      }
+      knockAudioUnregister.length = 0
+      knockAudioPool.length = 0
       scene = null
       root?.remove()
       root = null

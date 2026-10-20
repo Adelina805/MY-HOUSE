@@ -12,6 +12,8 @@ export function playDoorPanelKnockFeedback(target: HTMLElement): Promise<void> {
       return
     }
 
+    gsap.killTweensOf(target)
+
     const tl = gsap.timeline({
       onComplete: () => {
         gsap.set(target, { clearProps: 'transform' })

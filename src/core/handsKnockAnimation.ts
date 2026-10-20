@@ -7,8 +7,10 @@ export const handsKnockTiming = {
   strike: 0.1,
   recoil: 0.12,
   returnIdle: 0.26,
-  /** Pause after knock 3 before greeting (seconds). */
-  beforeGreeting: 0.5,
+  /** Open-hand idle after the visitor stops knocking. */
+  handIdleDelay: 0.3,
+  /** Pause after last knock (≥3) before greeting. */
+  greetingInactivity: 0.6,
 } as const
 
 /**
@@ -81,114 +83,194 @@ function loadFistImage(hand: HTMLImageElement): Promise<void> {
   })
 }
 
-let knockInProgress = false
+export class RightHandKnockController {
+  private readonly overlay: HTMLElement
+  private readonly hand: HTMLImageElement
+  private readonly openSrc = assets.hands.right
+  private readonly fistSrc = assets.hands.fist
+  private activeTimeline: gsap.core.Timeline | null = null
+  private idleReturnTimer: ReturnType<typeof setTimeout> | null = null
+  private fistPrimed = false
+  private fistLoadPromise: Promise<void> | null = null
+  private onHandReturnedToIdle: (() => void) | null = null
 
-export function isRightHandKnockBusy(): boolean {
-  return knockInProgress
-}
-
-export function playRightHandKnock(
-  overlay: HTMLElement,
-  hand: HTMLImageElement,
-  target: KnockPoint,
-  onStrike: () => void,
-): Promise<void> {
-  if (knockInProgress) return Promise.resolve()
-  knockInProgress = true
-
-  const openSrc = assets.hands.right
-  const fistSrc = assets.hands.fist
-  const reduced = prefersReducedMotion()
-
-  const finish = (tl: gsap.core.Timeline | null): void => {
-    tl?.kill()
-    hand.classList.remove('hands-overlay__hand--knocking')
-    hand.src = openSrc
-    gsap.set(hand, { clearProps: 'transform,x,y,scale,rotation' })
-    knockInProgress = false
+  constructor(overlay: HTMLElement, hand: HTMLImageElement) {
+    this.overlay = overlay
+    this.hand = hand
   }
 
-  return loadFistImage(hand).then(
-    () =>
-      new Promise((resolve) => {
-        hand.classList.add('hands-overlay__hand--knocking')
+  setOnHandReturnedToIdle(handler: (() => void) | null): void {
+    this.onHandReturnedToIdle = handler
+  }
 
-        const rotation =
-          parseFloat(
-            getComputedStyle(overlay).getPropertyValue('--hands-right-rotate'),
-          ) || -16
+  knock(target: KnockPoint, onStrike: () => void): void {
+    this.cancelIdleReturn()
+    void this.ensureFist().then(() => {
+      this.runKnockSegment(target, onStrike)
+    })
+  }
 
-        const runLayout = (): void => {
-          const clamped = clampKnockTarget(target, overlay, hand)
-          const knuckle = knuckleClientPoint(hand, handsKnockAlignment.fist)
-          let dx = clamped.clientX - knuckle.x
-          let dy = clamped.clientY - knuckle.y
+  scheduleIdleReturn(): void {
+    this.cancelIdleReturn()
+    const delayMs = prefersReducedMotion()
+      ? 120
+      : handsKnockTiming.handIdleDelay * 1000
+    this.idleReturnTimer = setTimeout(() => {
+      this.idleReturnTimer = null
+      void this.returnToOpenHand()
+    }, delayMs)
+  }
 
-          if (reduced) {
-            dx *= 0.35
-            dy *= 0.35
-          }
+  cancelIdleReturn(): void {
+    if (this.idleReturnTimer !== null) {
+      clearTimeout(this.idleReturnTimer)
+      this.idleReturnTimer = null
+    }
+  }
 
-          gsap.set(hand, {
-            rotation,
-            x: 0,
-            y: 0,
-            scale: 1,
-            transformOrigin: `${handsKnockAlignment.fist.knuckleX * 100}% ${handsKnockAlignment.fist.knuckleY * 100}%`,
-          })
+  returnToOpenHand(): Promise<void> {
+    this.cancelIdleReturn()
+    this.killActiveTimeline()
 
-          const moveDur = reduced ? 0.08 : handsKnockTiming.moveToTarget
-          const strikeDur = reduced ? 0.05 : handsKnockTiming.strike
-          const recoilDur = reduced ? 0.06 : handsKnockTiming.recoil
-          const returnDur = reduced ? 0.1 : handsKnockTiming.returnIdle
-          const strikePush = reduced ? -4 : handsKnockAlignment.strikeOffsetY
+    if (!this.fistPrimed) return Promise.resolve()
 
-          const tl = gsap.timeline({
-            onComplete: () => {
-              finish(null)
-              resolve()
-            },
-          })
+    const reduced = prefersReducedMotion()
+    const returnDur = reduced ? 0.1 : handsKnockTiming.returnIdle
 
-          tl.to(hand, {
-            x: dx,
-            y: dy,
-            duration: moveDur,
-            ease: 'power2.out',
-          })
-            .to(
-              hand,
-              {
-                y: dy + strikePush,
-                scale: reduced ? 1 : 0.97,
-                duration: strikeDur,
-                ease: 'power1.in',
-                onStart: onStrike,
-              },
-              '>',
-            )
-            .to(hand, {
-              y: dy,
-              scale: 1,
-              duration: recoilDur,
-              ease: 'power1.out',
-            })
-            .to(hand, {
-              x: 0,
-              y: 0,
-              scale: 1,
-              duration: returnDur,
-              ease: 'power2.inOut',
-            })
+    return new Promise((resolve) => {
+      const currentX = Number(gsap.getProperty(this.hand, 'x')) || 0
+      const currentY = Number(gsap.getProperty(this.hand, 'y')) || 0
+      if (currentX === 0 && currentY === 0) {
+        this.resetHandToCssIdle()
+        this.onHandReturnedToIdle?.()
+        resolve()
+        return
+      }
+
+      gsap.to(this.hand, {
+        x: 0,
+        y: 0,
+        scale: 1,
+        duration: returnDur,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          this.resetHandToCssIdle()
+          this.onHandReturnedToIdle?.()
+          resolve()
+        },
+      })
+    })
+  }
+
+  dispose(): void {
+    this.cancelIdleReturn()
+    this.killActiveTimeline()
+    this.resetHandToCssIdle()
+    this.fistPrimed = false
+    this.fistLoadPromise = null
+  }
+
+  private ensureFist(): Promise<void> {
+    if (!this.fistSrc) return Promise.resolve()
+    if (this.fistPrimed && this.hand.getAttribute('src') === this.fistSrc) {
+      return Promise.resolve()
+    }
+    if (!this.fistLoadPromise) {
+      this.fistLoadPromise = loadFistImage(this.hand).then(() => {
+        this.fistPrimed = true
+      })
+    }
+    return this.fistLoadPromise
+  }
+
+  private runKnockSegment(target: KnockPoint, onStrike: () => void): void {
+    this.killActiveTimeline()
+
+    const reduced = prefersReducedMotion()
+    this.hand.classList.add('hands-overlay__hand--knocking')
+    if (this.fistSrc) {
+      this.hand.src = this.fistSrc
+    }
+
+    const rotation =
+      parseFloat(
+        getComputedStyle(this.overlay).getPropertyValue('--hands-right-rotate'),
+      ) || -16
+
+    if (!gsap.getProperty(this.hand, 'rotation')) {
+      gsap.set(this.hand, {
+        rotation,
+        transformOrigin: `${handsKnockAlignment.fist.knuckleX * 100}% ${handsKnockAlignment.fist.knuckleY * 100}%`,
+      })
+    }
+
+    const clamped = clampKnockTarget(target, this.overlay, this.hand)
+    const knuckle = knuckleClientPoint(this.hand, handsKnockAlignment.fist)
+    let deltaX = clamped.clientX - knuckle.x
+    let deltaY = clamped.clientY - knuckle.y
+
+    if (reduced) {
+      deltaX *= 0.35
+      deltaY *= 0.35
+    }
+
+    const currentX = Number(gsap.getProperty(this.hand, 'x')) || 0
+    const currentY = Number(gsap.getProperty(this.hand, 'y')) || 0
+    const targetX = currentX + deltaX
+    const targetY = currentY + deltaY
+
+    const moveDur = reduced ? 0.08 : handsKnockTiming.moveToTarget
+    const strikeDur = reduced ? 0.05 : handsKnockTiming.strike
+    const recoilDur = reduced ? 0.06 : handsKnockTiming.recoil
+    const strikePush = reduced ? -4 : handsKnockAlignment.strikeOffsetY
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (this.activeTimeline === tl) {
+          this.activeTimeline = null
         }
+      },
+    })
+    this.activeTimeline = tl
 
-        if (fistSrc) {
-          hand.src = fistSrc
-        }
+    tl.to(this.hand, {
+      x: targetX,
+      y: targetY,
+      duration: moveDur,
+      ease: 'power2.out',
+    })
+      .to(
+        this.hand,
+        {
+          y: targetY + strikePush,
+          scale: reduced ? 1 : 0.97,
+          duration: strikeDur,
+          ease: 'power1.in',
+          onStart: onStrike,
+        },
+        '>',
+      )
+      .to(this.hand, {
+        y: targetY,
+        scale: 1,
+        duration: recoilDur,
+        ease: 'power1.out',
+      })
+  }
 
-        requestAnimationFrame(() => {
-          requestAnimationFrame(runLayout)
-        })
-      }),
-  )
+  private killActiveTimeline(): void {
+    if (this.activeTimeline) {
+      this.activeTimeline.kill()
+      this.activeTimeline = null
+    }
+    gsap.killTweensOf(this.hand)
+  }
+
+  private resetHandToCssIdle(): void {
+    this.hand.classList.remove('hands-overlay__hand--knocking')
+    this.hand.src = this.openSrc
+    gsap.set(this.hand, { clearProps: 'transform,x,y,scale,rotation' })
+    this.fistPrimed = false
+    this.fistLoadPromise = null
+  }
 }
