@@ -40,11 +40,29 @@ export interface DoorEnvironment {
 
 function knockPointFromEvent(
   button: HTMLButtonElement,
-  event: MouseEvent,
+  event: PointerEvent | MouseEvent,
 ): KnockPoint {
-  if (event.clientX !== 0 || event.clientY !== 0) {
-    return { clientX: event.clientX, clientY: event.clientY }
+  const { clientX, clientY } = event
+  if (
+    Number.isFinite(clientX) &&
+    Number.isFinite(clientY) &&
+    (clientX !== 0 || clientY !== 0)
+  ) {
+    return { clientX, clientY }
   }
+
+  if (
+    'offsetX' in event &&
+    Number.isFinite(event.offsetX) &&
+    Number.isFinite(event.offsetY)
+  ) {
+    const rect = button.getBoundingClientRect()
+    return {
+      clientX: rect.left + event.offsetX,
+      clientY: rect.top + event.offsetY,
+    }
+  }
+
   const rect = button.getBoundingClientRect()
   return {
     clientX: rect.left + rect.width * 0.5,
@@ -156,7 +174,18 @@ export function createDoorEnvironment(): DoorEnvironment {
       media = new DoorMediaController(mediaEl)
       perspective = new PerspectiveController(viewport, rig)
 
+      let suppressClickKnock = false
+      knockBtn.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return
+        suppressClickKnock = true
+        media?.primeGreetingPlayback()
+        onKnock?.(knockPointFromEvent(knockBtn, event))
+      })
       knockBtn.addEventListener('click', (event) => {
+        if (suppressClickKnock) {
+          suppressClickKnock = false
+          return
+        }
         media?.primeGreetingPlayback()
         onKnock?.(knockPointFromEvent(knockBtn, event))
       })

@@ -19,7 +19,6 @@ export const handsKnockTiming = {
  */
 export const handsKnockAlignment = {
   fist: { knuckleX: 0.36, knuckleY: 0.26 },
-  viewportClampPaddingPx: 12,
   /** Extra nudge along strike axis (px, screen space; negative = toward top of viewport). */
   strikeOffsetY: -10,
 } as const
@@ -37,31 +36,21 @@ function knuckleClientPoint(
   hand: HTMLElement,
   ratios: { knuckleX: number; knuckleY: number },
 ): { x: number; y: number } {
+  const w = hand.offsetWidth
+  const h = hand.offsetHeight
   const rect = hand.getBoundingClientRect()
-  return {
-    x: rect.left + rect.width * ratios.knuckleX,
-    y: rect.top + rect.height * ratios.knuckleY,
+  if (!w || !h) {
+    return {
+      x: rect.left + rect.width * ratios.knuckleX,
+      y: rect.top + rect.height * ratios.knuckleY,
+    }
   }
-}
 
-function clampKnockTarget(
-  point: KnockPoint,
-  overlay: HTMLElement,
-  hand: HTMLElement,
-): KnockPoint {
-  const pad = handsKnockAlignment.viewportClampPaddingPx
-  const overlayRect = overlay.getBoundingClientRect()
-  const handRect = hand.getBoundingClientRect()
-  const { knuckleX, knuckleY } = handsKnockAlignment.fist
-
-  const minX = overlayRect.left + pad + handRect.width * knuckleX
-  const maxX = overlayRect.right - pad - handRect.width * (1 - knuckleX)
-  const minY = overlayRect.top + pad + handRect.height * knuckleY
-  const maxY = overlayRect.bottom - pad - handRect.height * (1 - knuckleY)
-
+  const sx = rect.width / w
+  const sy = rect.height / h
   return {
-    clientX: Math.min(maxX, Math.max(minX, point.clientX)),
-    clientY: Math.min(maxY, Math.max(minY, point.clientY)),
+    x: rect.left + ratios.knuckleX * w * sx,
+    y: rect.top + ratios.knuckleY * h * sy,
   }
 }
 
@@ -204,10 +193,9 @@ export class RightHandKnockController {
       })
     }
 
-    const clamped = clampKnockTarget(target, this.overlay, this.hand)
     const knuckle = knuckleClientPoint(this.hand, handsKnockAlignment.fist)
-    let deltaX = clamped.clientX - knuckle.x
-    let deltaY = clamped.clientY - knuckle.y
+    let deltaX = target.clientX - knuckle.x
+    let deltaY = target.clientY - knuckle.y
 
     if (reduced) {
       deltaX *= 0.35
