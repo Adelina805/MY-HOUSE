@@ -189,7 +189,6 @@ export class ExperienceController {
     if (this.knockCount < KNOCKS_REQUIRED) return
 
     this.greetingTransitionStarted = true
-    this.door.setKnockEnabled(false)
     this.busy = true
     this.knockController?.cancelIdleReturn()
 
@@ -210,6 +209,11 @@ export class ExperienceController {
   }
 
   private handleKnock(point: KnockPoint): void {
+    if (this.state === 'greeting') {
+      this.playKnockFeedbackOnly(point)
+      return
+    }
+
     if (this.busy || this.greetingTransitionStarted || this.state !== 'idle') {
       return
     }
@@ -235,6 +239,19 @@ export class ExperienceController {
     if (this.knockCount >= KNOCKS_REQUIRED) {
       this.scheduleGreetingInactivityCheck()
     }
+  }
+
+  /** Strike animation + sound during the hello video; does not affect knock count or flow. */
+  private playKnockFeedbackOnly(point: KnockPoint): void {
+    const controller = this.knockController
+    if (!controller) return
+
+    controller.knock(point, () => {
+      this.door.playKnockStrike()
+      this.controls?.showTransientCaption('[knock]')
+      void this.door.playKnockFeedback()
+    })
+    controller.scheduleIdleReturn()
   }
 
   private async handleTakeCandy(): Promise<void> {

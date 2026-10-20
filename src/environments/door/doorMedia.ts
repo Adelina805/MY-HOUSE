@@ -87,6 +87,15 @@ export class DoorMediaController {
 
   /** Call synchronously from the knock click (before any await) for iOS playback. */
   primeGreetingPlayback(): void {
+    const mode = this.mediaRoot.dataset.mode as DoorMediaMode
+    if (
+      mode === 'greeting' ||
+      mode === 'greeting-hold' ||
+      mode === 'goodbye'
+    ) {
+      return
+    }
+
     const src = assets.door.greetingVideo
     if (!src) return
 
