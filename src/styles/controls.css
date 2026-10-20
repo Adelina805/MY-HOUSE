@@ -5,12 +5,12 @@
   --controls-inset-top: max(0.5rem, env(safe-area-inset-top, 0px));
   --controls-inset-right: max(0.5rem, env(safe-area-inset-right, 0px));
   --controls-inset-left: max(0.5rem, env(safe-area-inset-left, 0px));
-  --controls-gap: 0.35rem;
-  --controls-btn-size: 2.25rem;
-  --controls-btn-bg: #f7f5f0;
-  --controls-btn-color: #3a3a3a;
-  --controls-btn-radius: 8px;
-  --controls-btn-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+  --controls-gap: 0.25rem;
+  --controls-btn-size: 1.875rem;
+  --controls-btn-bg: rgb(247 245 240 / 88%);
+  --controls-btn-color: #4a4a4a;
+  --controls-btn-radius: 6px;
+  --controls-btn-shadow: 0 1px 2px rgb(0 0 0 / 6%);
 
   position: absolute;
   inset: 0;
@@ -45,10 +45,10 @@
   justify-content: center;
   width: var(--controls-btn-size);
   height: var(--controls-btn-size);
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--controls-btn-size);
+  min-height: var(--controls-btn-size);
   padding: 0;
-  border: 1px solid rgb(58 58 58 / 12%);
+  border: 1px solid rgb(58 58 58 / 8%);
   border-radius: var(--controls-btn-radius);
   background: var(--controls-btn-bg);
   color: var(--controls-btn-color);
@@ -59,9 +59,10 @@
 }
 
 .experience-controls__btn svg {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
+  opacity: 0.88;
 }
 
 .experience-controls__btn--skip {
@@ -74,8 +75,32 @@
   pointer-events: auto;
 }
 
+.experience-controls__btn--cc[data-active='false'] {
+  background: rgb(247 245 240 / 62%);
+  border-color: rgb(58 58 58 / 5%);
+  box-shadow: none;
+  color: var(--controls-btn-color);
+}
+
+.experience-controls__btn--cc[data-active='false'] svg {
+  opacity: 0.4;
+}
+
 .experience-controls__btn--cc[data-active='true'] {
-  background: #ebe6dc;
+  background: var(--controls-btn-bg);
+  border-color: rgb(58 58 58 / 22%);
+  box-shadow: var(--controls-btn-shadow);
+  color: var(--controls-btn-color);
+}
+
+.experience-controls__btn--cc[data-active='true'] svg {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .experience-controls {
+    --controls-btn-size: 2.75rem;
+  }
 }
 
 .experience-controls__btn:focus-visible {
