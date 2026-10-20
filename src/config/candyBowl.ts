@@ -13,10 +13,12 @@ export const candyBowlConfig = {
     impactScale: 1.04,
   },
   hands: {
-    /** Horizontal spread as a fraction of hand image width (each side). */
-    separationHandWidthScale: 0.2,
-    separationMinPx: 72,
-    separationYOffset: 14,
+    /** Horizontal fingertip half-gap as a fraction of current hand width. */
+    separationHandWidthScale: 0.26,
+    separationMinPx: 56,
+    /** Vertical offset scales with hand height; plus a small fixed nudge. */
+    separationHeightScale: 0.1,
+    separationYOffsetPx: 4,
     /** Fraction of hand image box for fingertip alignment (like knock knuckle). */
     fingertip: {
       left: { x: 0.62, y: 0.22 },

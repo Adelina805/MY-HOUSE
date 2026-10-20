@@ -28,9 +28,6 @@ interface BowlObject {
 }
 
 interface RummagePose {
-  anchorMid: { x: number; y: number }
-  left: { x: number; y: number }
-  right: { x: number; y: number }
   scale: number
 }
 
@@ -80,12 +77,17 @@ function separationForHand(hand: HTMLElement): {
   right: { x: number; y: number }
 } {
   const w = hand.offsetWidth || 200
-  const scale = config.hands.separationHandWidthScale
-  const x = Math.max(w * scale, config.hands.separationMinPx)
-  const y = config.hands.separationYOffset
+  const h = hand.offsetHeight || w * 1.15
+  const halfGap = Math.max(
+    w * config.hands.separationHandWidthScale,
+    config.hands.separationMinPx,
+  )
+  const y =
+    h * config.hands.separationHeightScale +
+    config.hands.separationYOffsetPx
   return {
-    left: { x: -x, y },
-    right: { x, y },
+    left: { x: -halfGap, y },
+    right: { x: halfGap, y },
   }
 }
 
@@ -139,6 +141,27 @@ function releaseGsapHand(hand: HTMLElement): void {
   gsap.set(hand, { clearProps: 'transform,x,y,scale,rotation' })
 }
 
+function readHandTranslate(hand: HTMLElement): { x: number; y: number } {
+  const tr = getComputedStyle(hand).transform
+  if (!tr || tr === 'none') return { x: 0, y: 0 }
+  const m = new DOMMatrixReadOnly(tr)
+  return { x: m.m41, y: m.m42 }
+}
+
+function translateForFingertipTarget(
+  hand: HTMLElement,
+  overlay: HTMLElement,
+  ratios: { x: number; y: number },
+  target: { x: number; y: number },
+): { x: number; y: number } {
+  const current = readHandTranslate(hand)
+  const tip = fingertipInOverlay(hand, overlay, ratios)
+  return {
+    x: current.x + (target.x - tip.x),
+    y: current.y + (target.y - tip.y),
+  }
+}
+
 export function createCandyRummageController(
   options: CandyRummageOptions,
 ): CandyRummageController {
@@ -187,6 +210,11 @@ export function createCandyRummageController(
     if (state === 'rummaging') {
       applyFollow(event.clientX, event.clientY)
     }
+  }
+
+  const onViewportChange = (): void => {
+    if (state !== 'rummaging' || !pointerClient) return
+    applyFollow(pointerClient.x, pointerClient.y)
   }
 
   function pointInElement(
@@ -269,12 +297,7 @@ export function createCandyRummageController(
       scale,
     )
 
-    return {
-      anchorMid: bowlCenterInOverlay(),
-      left: { x: left.x, y: left.y },
-      right: { x: right.x, y: right.y },
-      scale,
-    }
+    return { scale }
   }
 
   function startFollowLoop(): void {
@@ -440,7 +463,6 @@ export function createCandyRummageController(
 
     state = 'rummaging'
     pose = handoffHandsToInlineTracking()
-    pose.anchorMid = center
     followActive = true
     lastMid = { ...center }
     lastMoveTime = performance.now()
@@ -482,27 +504,41 @@ export function createCandyRummageController(
     lastMid = mid
     lastMoveTime = now
 
-    const dx = mid.x - pose.anchorMid.x
-    const dy = mid.y - pose.anchorMid.y
     const wobble =
       Math.min(
         handSpeed * config.hands.rotationFromSpeed * 1000,
         config.hands.maxRotationWobble,
       ) * wobbleDir
 
+    const sep = separationForHand(leftHand)
+    const leftTip = { x: mid.x + sep.left.x, y: mid.y + sep.left.y }
+    const rightTip = { x: mid.x + sep.right.x, y: mid.y + sep.right.y }
+    const leftXY = translateForFingertipTarget(
+      leftHand,
+      overlay,
+      config.hands.fingertip.left,
+      leftTip,
+    )
+    const rightXY = translateForFingertipTarget(
+      rightHand,
+      overlay,
+      config.hands.fingertip.right,
+      rightTip,
+    )
+
     paintHand(
       leftHand,
       leftOrigin,
-      pose.left.x + dx,
-      pose.left.y + dy,
+      leftXY.x,
+      leftXY.y,
       leftRotateBase + wobble * 0.6,
       pose.scale,
     )
     paintHand(
       rightHand,
       rightOrigin,
-      pose.right.x + dx,
-      pose.right.y + dy,
+      rightXY.x,
+      rightXY.y,
       rightRotateBase - wobble * 0.6,
       pose.scale,
     )
@@ -638,6 +674,8 @@ export function createCandyRummageController(
       bowl?.addEventListener('pointerdown', onPointerDown)
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('mousemove', onMouseMove, { passive: true })
+      window.addEventListener('resize', onViewportChange, { passive: true })
+      window.visualViewport?.addEventListener('resize', onViewportChange)
     },
 
     dispose(): void {
@@ -647,6 +685,8 @@ export function createCandyRummageController(
       bowl?.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('resize', onViewportChange)
+      window.visualViewport?.removeEventListener('resize', onViewportChange)
       clearHands()
       objects = []
       state = 'idle'
