@@ -46,8 +46,8 @@ async function boot(app: HTMLDivElement): Promise<void> {
   experience.start()
   await waitForNextPaint()
   app.classList.remove('app--booting')
-  await playSplashIntro(splash)
   experience.showControls()
+  await playSplashIntro(splash)
 }
 
 void boot(mount)

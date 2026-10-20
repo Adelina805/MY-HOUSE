@@ -18,6 +18,11 @@
   pointer-events: none;
 }
 
+/* Keep controls under the splash until it is removed so they paint with the scene. */
+#app:has(.splash) .experience-controls {
+  z-index: 5;
+}
+
 .experience-controls[hidden] {
   display: none;
 }
@@ -95,12 +100,6 @@
 
 .experience-controls__btn--cc[data-active='true'] svg {
   opacity: 1;
-}
-
-@media (pointer: coarse) {
-  .experience-controls {
-    --controls-btn-size: 2.75rem;
-  }
 }
 
 .experience-controls__btn:focus-visible {
