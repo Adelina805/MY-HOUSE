@@ -41,6 +41,7 @@ export class ExperienceController {
   private knockCount = 0
   private knockController: RightHandKnockController | null = null
   private greetingInactivityTimer: ReturnType<typeof setTimeout> | null = null
+  private candyAutoGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
   private greetingTransitionStarted = false
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
@@ -158,6 +159,7 @@ export class ExperienceController {
     this.controls = null
     gsap.killTweensOf(this.camera)
     this.clearGreetingInactivityTimer()
+    this.clearCandyAutoGoodbyeTimer()
     this.knockController?.dispose()
     this.knockController = null
     const doorScene = this.door.getSceneElement()
@@ -185,6 +187,21 @@ export class ExperienceController {
       clearTimeout(this.greetingInactivityTimer)
       this.greetingInactivityTimer = null
     }
+  }
+
+  private clearCandyAutoGoodbyeTimer(): void {
+    if (this.candyAutoGoodbyeTimer !== null) {
+      clearTimeout(this.candyAutoGoodbyeTimer)
+      this.candyAutoGoodbyeTimer = null
+    }
+  }
+
+  private scheduleCandyAutoGoodbye(): void {
+    this.clearCandyAutoGoodbyeTimer()
+    this.candyAutoGoodbyeTimer = setTimeout(() => {
+      this.candyAutoGoodbyeTimer = null
+      void this.leaveCandyForGoodbye()
+    }, transitions.candyAutoGoodbyeDelayMs)
   }
 
   private scheduleGreetingInactivityCheck(): void {
@@ -227,6 +244,7 @@ export class ExperienceController {
     this.candy.setInteractive(true)
     this.candyRummage?.bind()
     this.busy = false
+    this.scheduleCandyAutoGoodbye()
   }
 
   private handleKnock(point: KnockPoint): void {
@@ -277,7 +295,12 @@ export class ExperienceController {
   }
 
   private async handleTakeCandy(): Promise<void> {
+    await this.leaveCandyForGoodbye()
+  }
+
+  private async leaveCandyForGoodbye(): Promise<void> {
     if (this.busy || this.state !== 'waiting-for-candy') return
+    this.clearCandyAutoGoodbyeTimer()
     this.busy = true
     this.candy.setInteractive(false)
 
@@ -309,6 +332,7 @@ export class ExperienceController {
     this.door.resetToIdle()
     this.door.setKnockEnabled(true)
     this.clearGreetingInactivityTimer()
+    this.clearCandyAutoGoodbyeTimer()
     this.greetingTransitionStarted = false
     this.knockCount = 0
     this.knockController?.dispose()

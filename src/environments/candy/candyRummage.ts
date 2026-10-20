@@ -91,6 +91,24 @@ function separationForHand(hand: HTMLElement): {
   }
 }
 
+function clampNormalizedToEllipse(
+  x: number,
+  y: number,
+  radiusX: number,
+  radiusY: number,
+): { x: number; y: number } {
+  const cx = 0.5
+  const cy = 0.5
+  const dx = x - cx
+  const dy = y - cy
+  if (radiusX <= 0 || radiusY <= 0) return { x: cx, y: cy }
+  const norm =
+    (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY)
+  if (norm <= 1) return { x, y }
+  const scale = 1 / Math.sqrt(norm)
+  return { x: cx + dx * scale, y: cy + dy * scale }
+}
+
 function clampToBowlEllipse(
   point: { x: number; y: number },
   bowlRect: DOMRect,
@@ -578,6 +596,15 @@ export function createCandyRummageController(
       obj.x += (nx * push) / rootRect.width
       obj.y += (ny * push) / rootRect.height
 
+      const clamped = clampNormalizedToEllipse(
+        obj.x,
+        obj.y,
+        config.hands.boundary.radiusX,
+        config.hands.boundary.radiusY,
+      )
+      obj.x = clamped.x
+      obj.y = clamped.y
+
       const rotDelta =
         (nx * handSpeed * config.objects.rotationStrength * 1200 +
           (Math.random() - 0.5) * 0.02) *
@@ -590,6 +617,8 @@ export function createCandyRummageController(
       gsap.to(obj.el, {
         x: tx,
         y: ty,
+        xPercent: -50,
+        yPercent: -50,
         rotation: `+=${rotDelta * 45}`,
         scale: bounce,
         duration: reduced ? 0.08 : 0.12,
@@ -613,29 +642,49 @@ export function createCandyRummageController(
     objects = []
 
     const cfg = config.objects
+    const rootRect = root.getBoundingClientRect()
     for (let i = 0; i < cfg.count; i += 1) {
       const el = document.createElement('div')
       const isCircle = Math.random() > 0.5
       el.className = `candy__object candy__object--${isCircle ? 'circle' : 'square'}`
 
-      const shade =
-        cfg.shadeMin + Math.random() * (cfg.shadeMax - cfg.shadeMin)
+      const hue =
+        cfg.blueHueMin + Math.random() * (cfg.blueHueMax - cfg.blueHueMin)
+      const sat =
+        cfg.blueSatMin + Math.random() * (cfg.blueSatMax - cfg.blueSatMin)
+      const light =
+        cfg.blueLightMin +
+        Math.random() * (cfg.blueLightMax - cfg.blueLightMin)
       const size =
         cfg.sizeMinPx + Math.random() * (cfg.sizeMaxPx - cfg.sizeMinPx)
       el.style.width = `${size}px`
       el.style.height = `${size}px`
-      el.style.backgroundColor = `rgb(${Math.round(shade * 255)}, ${Math.round(shade * 255)}, ${Math.round(shade * 255)})`
+      el.style.backgroundColor = `hsl(${hue} ${sat}% ${light}%)`
 
       const angle = Math.random() * Math.PI * 2
-      const r = Math.sqrt(Math.random()) * 0.42
-      const x = 0.5 + Math.cos(angle) * r * 0.95
-      const y = 0.5 + Math.sin(angle) * r * 0.82
-
-      el.style.left = `${x * 100}%`
-      el.style.top = `${y * 100}%`
+      const r = 0.2 + Math.random() * 0.34
+      const placed = clampNormalizedToEllipse(
+        0.5 + Math.cos(angle) * r,
+        0.5 + Math.sin(angle) * r * 0.86,
+        config.hands.boundary.radiusX,
+        config.hands.boundary.radiusY,
+      )
 
       root.appendChild(el)
-      objects.push({ el, x, y, baseX: x, baseY: y, size })
+      gsap.set(el, {
+        x: placed.x * rootRect.width,
+        y: placed.y * rootRect.height,
+        xPercent: -50,
+        yPercent: -50,
+      })
+      objects.push({
+        el,
+        x: placed.x,
+        y: placed.y,
+        baseX: placed.x,
+        baseY: placed.y,
+        size,
+      })
     }
   }
 
