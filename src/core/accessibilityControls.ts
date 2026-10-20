@@ -16,6 +16,7 @@ export interface AccessibilityControls {
   hide(): void
   setSkipVisible(visible: boolean): void
   attachCaptions(video: HTMLVideoElement | null, vttUrl: string | null): void
+  showTransientCaption(text: string, durationMs?: number): void
   destroy(): void
 }
 
@@ -124,6 +125,9 @@ export function createAccessibilityControls(
     },
     attachCaptions(video: HTMLVideoElement | null, vttUrl: string | null): void {
       captions.attach(video, vttUrl)
+    },
+    showTransientCaption(text: string, durationMs?: number): void {
+      captions.showTransient(text, durationMs)
     },
     destroy(): void {
       unsubscribeSound()

@@ -92,6 +92,8 @@ function activeCueText(track: TextTrack): string | null {
   return text || null
 }
 
+const DEFAULT_TRANSIENT_CAPTION_MS = 800
+
 export class CaptionRenderer {
   readonly element: HTMLElement
   private readonly overlay: HTMLElement
@@ -102,6 +104,8 @@ export class CaptionRenderer {
   private onTimeUpdate: (() => void) | null = null
   private onAddTrack: (() => void) | null = null
   private onMetadata: (() => void) | null = null
+  private transientTimer: ReturnType<typeof setTimeout> | null = null
+  private showingTransient = false
 
   constructor(overlay: HTMLElement) {
     this.element = overlay
@@ -121,6 +125,22 @@ export class CaptionRenderer {
     } else {
       this.syncToActiveCue()
     }
+  }
+
+  /** Visual-only caption (e.g. SFX); does not use aria-live. Independent of mute. */
+  showTransient(text: string, durationMs = DEFAULT_TRANSIENT_CAPTION_MS): void {
+    if (!this.enabled || !text.trim()) return
+
+    this.clearTransientTimer()
+    this.showingTransient = true
+    this.overlay.hidden = false
+    this.overlay.setAttribute('aria-hidden', 'true')
+    this.overlay.textContent = text
+
+    this.transientTimer = setTimeout(() => {
+      this.transientTimer = null
+      this.endTransient()
+    }, durationMs)
   }
 
   attach(video: HTMLVideoElement | null, vttUrl: string | null): void {
@@ -211,12 +231,33 @@ export class CaptionRenderer {
       return
     }
 
+    this.overlay.removeAttribute('aria-hidden')
     this.overlay.hidden = false
     this.overlay.textContent = text
   }
 
+  private endTransient(): void {
+    if (!this.showingTransient) return
+    this.showingTransient = false
+    if (this.video && this.textTrack) {
+      this.syncToActiveCue()
+    } else {
+      this.clearText()
+    }
+  }
+
+  private clearTransientTimer(): void {
+    if (this.transientTimer !== null) {
+      clearTimeout(this.transientTimer)
+      this.transientTimer = null
+    }
+  }
+
   private clearText(): void {
+    this.clearTransientTimer()
+    this.showingTransient = false
     this.overlay.textContent = ''
     this.overlay.hidden = true
+    this.overlay.removeAttribute('aria-hidden')
   }
 }

@@ -227,6 +227,7 @@ export class ExperienceController {
 
     controller.knock(point, () => {
       this.door.playKnockStrike()
+      this.controls?.showTransientCaption('[knock]')
       void this.door.playKnockFeedback()
     })
     controller.scheduleIdleReturn()
