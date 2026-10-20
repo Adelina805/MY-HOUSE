@@ -48,7 +48,7 @@ function knockPointFromEvent(
   const rect = button.getBoundingClientRect()
   return {
     clientX: rect.left + rect.width * 0.5,
-    clientY: rect.top + rect.height * 0.48,
+    clientY: rect.top + rect.height * 0.5,
   }
 }
 

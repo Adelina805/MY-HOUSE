@@ -11,10 +11,6 @@
   --door-frame-color: #333333;
   --door-object-position: center 12%;
   --door-scene-bg: #d8d8d6;
-  --door-hit-width: 72%;
-  --door-hit-height: 82%;
-  --door-hit-x: 50%;
-  --door-hit-y: 48%;
 }
 
 .environment--door {
@@ -150,17 +146,22 @@
 
 .door__knock-target {
   position: absolute;
-  left: var(--door-hit-x);
-  top: var(--door-hit-y);
-  width: var(--door-hit-width);
-  height: var(--door-hit-height);
-  transform: translate(-50%, -50%);
+  inset: 0;
   padding: 0;
   margin: 0;
   border: none;
   background: transparent;
   cursor: pointer;
   z-index: 3;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.door__knock-target:active {
+  background: transparent;
 }
 
 .door__knock-target:disabled {
@@ -205,10 +206,6 @@
     --door-top: 4%;
     --door-frame-thickness: 10px;
     --door-object-position: center 10%;
-    --door-hit-width: 78%;
-    --door-hit-height: 80%;
-    --door-hit-x: 50%;
-    --door-hit-y: 46%;
   }
 }
 
