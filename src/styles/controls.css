@@ -122,9 +122,9 @@
   transform: translateX(-50%);
   max-width: min(92%, 28rem);
   padding: 0.4rem 0.65rem;
-  border-radius: 6px;
-  background: rgb(20 20 20 / 82%);
-  color: #f7f5f0;
+  border-radius: 0;
+  background: #fff;
+  color: #1a1a1a;
   font-size: clamp(0.875rem, 2.8vw, 1rem);
   line-height: 1.35;
   text-align: center;
