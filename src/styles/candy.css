@@ -5,10 +5,8 @@
 
 .environment--candy {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 50%;
+  inset: 0;
+  z-index: 1;
   background: #1a1a1a;
   overflow: hidden;
 }

@@ -294,6 +294,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       if (!scene) return
       scene.style.transform = ''
       scene.style.transformOrigin = ''
+      scene.style.opacity = ''
     },
 
     prepareForGoodbye(): void {

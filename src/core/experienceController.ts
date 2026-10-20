@@ -132,7 +132,6 @@ export class ExperienceController {
     this.candy.setInteractive(false)
     this.state = 'idle'
     this.door.setPerspectiveEnabled(true)
-    gsap.set(this.camera, { y: 0 })
   }
 
   showControls(): void {
@@ -315,35 +314,27 @@ export class ExperienceController {
   }
 
   private async animateTransitionToCandy(): Promise<void> {
-    const camera = this.camera
     const doorScene = this.door.getSceneElement()
     const candyScene = this.candy.getSceneElement()
-    if (!camera || !doorScene) return
+    if (!doorScene) return
 
     const duration = prefersReducedMotion() ? 0.01 : transitions.toCandyDuration
-    const yPercent = transitions.toCandyTranslatePercent
+    const outDuration = duration * 0.52
+    const inDuration = duration * 0.52
 
     this.candy.setHidden(false)
     if (candyScene) {
       gsap.set(candyScene, { opacity: 0 })
     }
+    gsap.set(doorScene, { opacity: 1 })
 
     await gsap
       .timeline({ defaults: { ease: transitions.ease } })
       .to(
         doorScene,
         {
-          scale: transitions.toCandyZoom,
-          transformOrigin: transitions.toCandyZoomOrigin,
-          duration,
-        },
-        0,
-      )
-      .to(
-        camera,
-        {
-          y: `-${yPercent}%`,
-          duration,
+          opacity: 0,
+          duration: outDuration,
         },
         0,
       )
@@ -351,33 +342,34 @@ export class ExperienceController {
         candyScene,
         {
           opacity: 1,
-          duration: duration * 0.55,
+          duration: inDuration,
         },
-        duration * 0.35,
+        outDuration * 0.82,
       )
 
     this.door.resetSceneTransform()
     this.door.setHidden(true)
     this.door.clearGreetingHold()
     if (candyScene) {
-      gsap.set(candyScene, { opacity: 1 })
+      gsap.set(candyScene, { clearProps: 'opacity' })
     }
   }
 
   private async animateTransitionToDoor(): Promise<void> {
-    const camera = this.camera
     const doorScene = this.door.getSceneElement()
     const candyScene = this.candy.getSceneElement()
-    if (!camera || !doorScene) return
+    if (!doorScene) return
 
     const duration = prefersReducedMotion() ? 0.01 : transitions.toDoorDuration
+    const outDuration = duration * 0.52
+    const inDuration = duration * 0.52
 
     this.door.setHidden(false)
     this.door.prepareForGoodbye()
-    gsap.set(doorScene, { scale: transitions.toDoorZoom, opacity: 0 })
-    gsap.set(doorScene, {
-      transformOrigin: transitions.toDoorZoomOrigin,
-    })
+    gsap.set(doorScene, { opacity: 0 })
+    if (candyScene) {
+      gsap.set(candyScene, { opacity: 1 })
+    }
 
     await gsap
       .timeline({ defaults: { ease: transitions.ease } })
@@ -385,31 +377,21 @@ export class ExperienceController {
         candyScene,
         {
           opacity: 0,
-          duration: duration * 0.45,
-        },
-        0,
-      )
-      .to(
-        camera,
-        {
-          y: 0,
-          duration,
+          duration: outDuration,
         },
         0,
       )
       .to(
         doorScene,
         {
-          scale: 1,
           opacity: 1,
-          duration,
+          duration: inDuration,
         },
-        duration * 0.2,
+        outDuration * 0.82,
       )
 
     this.candy.setHidden(true)
     this.candy.resetSceneTransform()
     this.door.resetSceneTransform()
-    gsap.set(camera, { y: 0 })
   }
 }

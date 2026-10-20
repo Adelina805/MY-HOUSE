@@ -15,10 +15,8 @@
 
 .environment--door {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 50%;
+  inset: 0;
+  z-index: 2;
   overflow: hidden;
   background: var(--door-scene-bg);
 }
@@ -57,7 +55,7 @@
   width: 100%;
   height: 100%;
   transform-origin: center 35%;
-  will-change: transform;
+  will-change: transform, opacity;
 }
 
 .environment--door[data-wall] {
