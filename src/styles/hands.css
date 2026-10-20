@@ -48,6 +48,10 @@
   animation-delay: var(--hands-idle-delay-right);
 }
 
+.hands-overlay__hand--knocking {
+  animation: none !important;
+}
+
 @keyframes hands-idle-left {
   0%,
   100% {

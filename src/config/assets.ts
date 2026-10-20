@@ -27,9 +27,11 @@ export const assets = {
   hands: {
     left: '/media/hands/left-hand.png',
     right: '/media/hands/right-hand.png',
+    /** Closed fist for knocking. Empty = keep open hand during knock animation. */
+    fist: '/media/hands/knock.png',
   },
   audio: {
     /** Knock sound. Empty = silent knock animation only. */
-    knock: '',
+    knock: '/media/doorstep/knock.mov',
   },
 } as const

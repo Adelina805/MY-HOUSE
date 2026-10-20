@@ -1,9 +1,12 @@
 import { assets } from '../../config/assets'
 import { registerMediaElement, restoreMediaMute } from '../../core/soundState'
 import { movement } from '../../config/movement'
+import type { KnockPoint } from '../../core/handsKnockAnimation'
 import { DoorMediaController } from './doorMedia'
-import { playKnockAnimation } from './knockAnimation'
+import { playDoorPanelKnockFeedback } from './knockAnimation'
 import { PerspectiveController } from './perspectiveController'
+
+export type { KnockPoint }
 
 export interface DoorEnvironment {
   mount(container: HTMLElement): void
@@ -12,12 +15,13 @@ export interface DoorEnvironment {
   setPerspectiveEnabled(enabled: boolean): void
   snapPerspectiveToNeutral(): void
   returnToNeutral(): Promise<void>
-  playKnock(): Promise<void>
+  playKnockStrike(): void
+  playKnockFeedback(): Promise<void>
   playGreeting(): Promise<void>
   playGoodbye(): Promise<void>
   applyFinishedState(): void
   resetToIdle(): void
-  bindKnockHandler(handler: () => void): void
+  bindKnockHandler(handler: (point: KnockPoint) => void): void
   bindRestartHandler(handler: () => void): void
   setKnockEnabled(enabled: boolean): void
   getSceneElement(): HTMLElement | null
@@ -34,14 +38,29 @@ export interface DoorEnvironment {
   }): void
 }
 
+function knockPointFromEvent(
+  button: HTMLButtonElement,
+  event: MouseEvent,
+): KnockPoint {
+  if (event.clientX !== 0 || event.clientY !== 0) {
+    return { clientX: event.clientX, clientY: event.clientY }
+  }
+  const rect = button.getBoundingClientRect()
+  return {
+    clientX: rect.left + rect.width * 0.5,
+    clientY: rect.top + rect.height * 0.48,
+  }
+}
+
 export function createDoorEnvironment(): DoorEnvironment {
   let root: HTMLElement | null = null
   let scene: HTMLElement | null = null
+  let mediaRoot: HTMLElement | null = null
   let perspective: PerspectiveController | null = null
   let media: DoorMediaController | null = null
   let knockTarget: HTMLButtonElement | null = null
   let restartBtn: HTMLButtonElement | null = null
-  let onKnock: (() => void) | null = null
+  let onKnock: ((point: KnockPoint) => void) | null = null
   let onRestart: (() => void) | null = null
   let knockAudio: HTMLAudioElement | null = null
   let unregisterKnockSound: (() => void) | null = null
@@ -89,10 +108,10 @@ export function createDoorEnvironment(): DoorEnvironment {
       const doorwayFrame = document.createElement('div')
       doorwayFrame.className = 'door__doorway-frame'
 
-      const mediaRoot = document.createElement('div')
-      mediaRoot.className = 'door__media'
-      mediaRoot.dataset.mode = 'closed'
-      mediaRoot.innerHTML = `
+      const mediaEl = document.createElement('div')
+      mediaEl.className = 'door__media'
+      mediaEl.dataset.mode = 'closed'
+      mediaEl.innerHTML = `
         <img class="door__closed-image" alt="" draggable="false" />
         <video class="door__video door__video--greeting" playsinline></video>
         <video class="door__video door__video--goodbye" playsinline></video>
@@ -111,8 +130,8 @@ export function createDoorEnvironment(): DoorEnvironment {
       restart.setAttribute('aria-label', 'Visit again')
       restart.innerHTML = `<span class="door__sr-only">Visit again</span>`
 
-      mediaRoot.appendChild(knockBtn)
-      doorwayFrame.appendChild(mediaRoot)
+      mediaEl.appendChild(knockBtn)
+      doorwayFrame.appendChild(mediaEl)
       sceneEl.appendChild(background)
       sceneEl.appendChild(doorwayFrame)
       rig.appendChild(sceneEl)
@@ -124,14 +143,15 @@ export function createDoorEnvironment(): DoorEnvironment {
 
       root = env
       scene = sceneEl
+      mediaRoot = mediaEl
       knockTarget = knockBtn
       restartBtn = restart
-      media = new DoorMediaController(mediaRoot)
+      media = new DoorMediaController(mediaEl)
       perspective = new PerspectiveController(viewport, rig)
 
-      knockBtn.addEventListener('click', () => {
+      knockBtn.addEventListener('click', (event) => {
         media?.primeGreetingPlayback()
-        onKnock?.()
+        onKnock?.(knockPointFromEvent(knockBtn, event))
       })
       restart.addEventListener('click', () => {
         onRestart?.()
@@ -145,6 +165,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       media = null
       knockTarget = null
       restartBtn = null
+      mediaRoot = null
       unregisterKnockSound?.()
       unregisterKnockSound = null
       knockAudio = null
@@ -176,10 +197,13 @@ export function createDoorEnvironment(): DoorEnvironment {
       return perspective?.returnToNeutralAnimated() ?? Promise.resolve()
     },
 
-    async playKnock(): Promise<void> {
-      if (!scene) return
+    playKnockStrike(): void {
       playKnockSound()
-      await playKnockAnimation(scene)
+    },
+
+    async playKnockFeedback(): Promise<void> {
+      if (!mediaRoot) return
+      await playDoorPanelKnockFeedback(mediaRoot)
     },
 
     playGreeting(): Promise<void> {
@@ -210,7 +234,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       this.clearGreetingHold()
     },
 
-    bindKnockHandler(handler: () => void): void {
+    bindKnockHandler(handler: (point: KnockPoint) => void): void {
       onKnock = handler
     },
 

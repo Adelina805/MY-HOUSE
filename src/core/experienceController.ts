@@ -13,8 +13,15 @@ import {
   createAccessibilityControls,
   type AccessibilityControls,
 } from './accessibilityControls'
-import { createHandsOverlay } from './handsOverlay'
+import {
+  handsKnockTiming,
+  playRightHandKnock,
+} from './handsKnockAnimation'
+import { createHandsOverlay, type HandsOverlay } from './handsOverlay'
 import type { ExperienceState } from './types'
+import type { KnockPoint } from '../environments/door/doorEnvironment'
+
+const KNOCKS_REQUIRED = 3
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -27,6 +34,10 @@ export class ExperienceController {
   private candy: CandyEnvironment
   private state: ExperienceState = 'idle'
   private busy = false
+  private knockCount = 0
+  private knockAnimating = false
+  private hands: HandsOverlay | null = null
+  private knockStatusEl: HTMLElement | null = null
   private controls: AccessibilityControls | null = null
 
   constructor(host: HTMLElement) {
@@ -59,7 +70,16 @@ export class ExperienceController {
 
     this.host.appendChild(experience)
 
-    this.host.appendChild(createHandsOverlay())
+    const hands = createHandsOverlay()
+    this.hands = hands
+    this.host.appendChild(hands.element)
+
+    const knockStatus = document.createElement('div')
+    knockStatus.className = 'door__sr-only'
+    knockStatus.setAttribute('aria-live', 'polite')
+    knockStatus.setAttribute('aria-atomic', 'true')
+    this.knockStatusEl = knockStatus
+    this.host.appendChild(knockStatus)
 
     const controls = createAccessibilityControls({
       onSkip: () => this.handleSkip(),
@@ -73,8 +93,8 @@ export class ExperienceController {
     this.door.mount(camera)
     this.candy.mount(camera)
 
-    this.door.bindKnockHandler(() => {
-      void this.handleKnock()
+    this.door.bindKnockHandler((point) => {
+      void this.handleKnock(point)
     })
     this.door.bindRestartHandler(() => {
       void this.handleRestart()
@@ -107,6 +127,8 @@ export class ExperienceController {
     this.controls?.destroy()
     this.controls = null
     gsap.killTweensOf(this.camera)
+    const rightHand = this.hands?.rightHand
+    if (rightHand) gsap.killTweensOf(rightHand)
     const doorScene = this.door.getSceneElement()
     const candyScene = this.candy.getSceneElement()
     if (doorScene) gsap.killTweensOf(doorScene)
@@ -115,15 +137,54 @@ export class ExperienceController {
     this.candy.unmount()
     this.host.replaceChildren()
     this.camera = null
+    this.hands = null
+    this.knockStatusEl = null
   }
 
-  private async handleKnock(): Promise<void> {
-    if (this.busy || this.state !== 'idle') return
-    this.busy = true
-    this.state = 'knocking'
+  private announceKnock(count: number): void {
+    if (!this.knockStatusEl) return
+    this.knockStatusEl.textContent = `Knock ${count} of ${KNOCKS_REQUIRED}`
+  }
+
+  private async handleKnock(point: KnockPoint): Promise<void> {
+    if (this.busy || this.knockAnimating || this.state !== 'idle') return
+    if (this.knockCount >= KNOCKS_REQUIRED) return
+
+    const hands = this.hands
+    if (!hands) return
+
+    this.knockAnimating = true
     this.door.snapPerspectiveToNeutral()
-    this.door.setKnockEnabled(false)
     this.door.setPerspectiveEnabled(false)
+
+    const nextCount = this.knockCount + 1
+    this.announceKnock(nextCount)
+
+    await playRightHandKnock(hands.element, hands.rightHand, point, () => {
+      this.door.playKnockStrike()
+      void this.door.playKnockFeedback()
+    })
+
+    this.knockCount = nextCount
+    this.knockAnimating = false
+
+    if (this.knockCount < KNOCKS_REQUIRED) {
+      this.door.setPerspectiveEnabled(true)
+      return
+    }
+
+    this.door.setKnockEnabled(false)
+    this.busy = true
+
+    const delayMs = prefersReducedMotion()
+      ? 120
+      : handsKnockTiming.beforeGreeting * 1000
+    await new Promise((resolve) => setTimeout(resolve, delayMs))
+
+    if (this.state !== 'idle') {
+      this.busy = false
+      return
+    }
 
     this.state = 'greeting'
     await this.door.playGreeting()
@@ -165,6 +226,9 @@ export class ExperienceController {
     this.candy.reset()
     this.door.resetToIdle()
     this.door.setKnockEnabled(true)
+    this.knockCount = 0
+    this.knockAnimating = false
+    if (this.knockStatusEl) this.knockStatusEl.textContent = ''
     this.state = 'idle'
     this.busy = false
   }

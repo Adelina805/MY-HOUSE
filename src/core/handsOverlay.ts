@@ -1,6 +1,12 @@
 import { assets } from '../config/assets'
 
-export function createHandsOverlay(): HTMLElement {
+export interface HandsOverlay {
+  element: HTMLElement
+  leftHand: HTMLImageElement
+  rightHand: HTMLImageElement
+}
+
+export function createHandsOverlay(): HandsOverlay {
   const overlay = document.createElement('div')
   overlay.className = 'hands-overlay'
   overlay.setAttribute('aria-hidden', 'true')
@@ -20,5 +26,5 @@ export function createHandsOverlay(): HTMLElement {
   right.decoding = 'sync'
 
   overlay.append(left, right)
-  return overlay
+  return { element: overlay, leftHand: left, rightHand: right }
 }
