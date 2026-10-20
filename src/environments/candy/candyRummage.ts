@@ -109,25 +109,6 @@ function clampNormalizedToEllipse(
   return { x: cx + dx * scale, y: cy + dy * scale }
 }
 
-function clampToBowlEllipse(
-  point: { x: number; y: number },
-  bowlRect: DOMRect,
-  overlayRect: DOMRect,
-  boundary: { radiusX: number; radiusY: number },
-): { x: number; y: number } {
-  const cx = bowlRect.left - overlayRect.left + bowlRect.width / 2
-  const cy = bowlRect.top - overlayRect.top + bowlRect.height / 2
-  const rx = bowlRect.width * boundary.radiusX
-  const ry = bowlRect.height * boundary.radiusY
-  const dx = point.x - cx
-  const dy = point.y - cy
-  if (rx <= 0 || ry <= 0) return { x: cx, y: cy }
-  const norm = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry)
-  if (norm <= 1) return point
-  const scale = 1 / Math.sqrt(norm)
-  return { x: cx + dx * scale, y: cy + dy * scale }
-}
-
 function readGsapHandState(hand: HTMLElement): {
   x: number
   y: number
@@ -214,6 +195,13 @@ export function createCandyRummageController(
 
     event.preventDefault()
     beginPlunge()
+  }
+
+  const onPointerDownAnywhere = (event: PointerEvent): void => {
+    if (state !== 'rummaging') return
+    if (event.button !== 0) return
+    pointerClient = { x: event.clientX, y: event.clientY }
+    applyFollow(event.clientX, event.clientY)
   }
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -501,15 +489,8 @@ export function createCandyRummageController(
     const bowl = getBowlTarget()
     if (!bowl) return
 
-    const overlayRect = overlay.getBoundingClientRect()
     const bowlRect = bowl.getBoundingClientRect()
-    const raw = overlayPoint(clientX, clientY, overlay)
-    const mid = clampToBowlEllipse(
-      raw,
-      bowlRect,
-      overlayRect,
-      config.hands.boundary,
-    )
+    const mid = overlayPoint(clientX, clientY, overlay)
 
     const now = performance.now()
     let wobbleDir = 1
@@ -721,6 +702,7 @@ export function createCandyRummageController(
       spawnObjects()
       const bowl = getBowlTarget()
       bowl?.addEventListener('pointerdown', onPointerDown)
+      window.addEventListener('pointerdown', onPointerDownAnywhere)
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('mousemove', onMouseMove, { passive: true })
       window.addEventListener('resize', onViewportChange, { passive: true })
@@ -732,6 +714,7 @@ export function createCandyRummageController(
       bound = false
       const bowl = getBowlTarget()
       bowl?.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointerdown', onPointerDownAnywhere)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('resize', onViewportChange)

@@ -30,7 +30,7 @@ export const candyBowlConfig = {
     /** Slight independent rotation wobble from horizontal hand speed. */
     rotationFromSpeed: 0.35,
     maxRotationWobble: 6,
-    /** Ellipse clamp for cursor midpoint (fraction of bowl hit area). */
+    /** Ellipse that keeps scattered objects inside the bowl (fraction of the objects area). */
     boundary: {
       radiusX: 0.52,
       radiusY: 0.48,
