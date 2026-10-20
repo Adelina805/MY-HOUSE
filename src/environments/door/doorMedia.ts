@@ -29,8 +29,11 @@ export class DoorMediaController {
 
   private greetingLoaded = false
   private goodbyeLoaded = false
-  /** Once real greeting playback starts, ignore the muted prime's pause. */
+  /** Once real greeting playback starts, ignore stale muted primes. */
   private greetingPrimeSettled = false
+  /** Bumps on each prime and when real playback starts so stale primes cannot pause the video. */
+  private greetingPrimeGeneration = 0
+  private greetingPlayInProgress = false
   private unregisterGreetingSound: (() => void) | null = null
   private unregisterGoodbyeSound: (() => void) | null = null
   private skipActivePlayback: (() => void) | null = null
@@ -87,6 +90,8 @@ export class DoorMediaController {
 
   /** Call synchronously from the knock click (before any await) for iOS playback. */
   primeGreetingPlayback(): void {
+    if (this.greetingPlayInProgress) return
+
     const mode = this.mediaRoot.dataset.mode as DoorMediaMode
     if (
       mode === 'greeting' ||
@@ -100,7 +105,7 @@ export class DoorMediaController {
     if (!src) return
 
     const video = this.greetingVideo
-    this.greetingPrimeSettled = false
+    const generation = ++this.greetingPrimeGeneration
     this.ensureGreetingSource(src)
     this.setMode('greeting-loading')
     video.muted = true
@@ -111,12 +116,14 @@ export class DoorMediaController {
     }
     void playPromise
       .then(() => {
+        if (generation !== this.greetingPrimeGeneration) return
         if (this.greetingPrimeSettled) return
         video.pause()
         video.currentTime = 0
       })
       .catch(() => {})
       .finally(() => {
+        if (generation !== this.greetingPrimeGeneration) return
         if (!this.greetingPrimeSettled) {
           restoreMediaMute(video)
         }
@@ -145,6 +152,7 @@ export class DoorMediaController {
   }
 
   showClosed(): void {
+    this.invalidateGreetingPrime()
     this.setMode('closed')
   }
 
@@ -154,42 +162,48 @@ export class DoorMediaController {
   }
 
   async playGreeting(): Promise<void> {
+    this.greetingPlayInProgress = true
+    this.invalidateGreetingPrime()
     this.goodbyeVideo.pause()
     this.goodbyeVideo.currentTime = 0
 
-    const src = assets.door.greetingVideo
-    if (!src) {
-      await wait(PLACEHOLDER_VIDEO_MS)
+    try {
+      const src = assets.door.greetingVideo
+      if (!src) {
+        await wait(PLACEHOLDER_VIDEO_MS)
+        this.holdGreetingEndFrame()
+        return
+      }
+
+      const video = this.greetingVideo
+      restoreMediaMute(video)
+
+      this.ensureGreetingSource(src)
+      this.setMode('greeting-loading')
+
+      await this.waitForStartFrame(video, src)
+
+      const deadline = this.playbackDeadlineMs(video)
+      await Promise.race([
+        this.playVideo(
+          video,
+          src,
+          this.greetingLoaded,
+          () => {
+            this.greetingLoaded = true
+          },
+          {
+            onPlaying: () => this.setMode('greeting'),
+            captionsUrl: assets.door.greetingCaptions,
+          },
+        ),
+        wait(deadline),
+      ])
+
       this.holdGreetingEndFrame()
-      return
+    } finally {
+      this.greetingPlayInProgress = false
     }
-
-    const video = this.greetingVideo
-    restoreMediaMute(video)
-
-    this.ensureGreetingSource(src)
-    this.setMode('greeting-loading')
-
-    await this.waitForStartFrame(video, src)
-
-    const deadline = this.playbackDeadlineMs(video)
-    await Promise.race([
-      this.playVideo(
-        video,
-        src,
-        this.greetingLoaded,
-        () => {
-          this.greetingLoaded = true
-        },
-        {
-          onPlaying: () => this.setMode('greeting'),
-          captionsUrl: assets.door.greetingCaptions,
-        },
-      ),
-      wait(deadline),
-    ])
-
-    this.holdGreetingEndFrame()
   }
 
   async playGoodbye(): Promise<void> {
@@ -270,6 +284,11 @@ export class DoorMediaController {
     vttUrl: string | null,
   ): void {
     this.onCaptionVideoChange?.(video, vttUrl)
+  }
+
+  private invalidateGreetingPrime(): void {
+    this.greetingPrimeGeneration += 1
+    this.greetingPrimeSettled = false
   }
 
   private ensureGreetingSource(src: string): void {

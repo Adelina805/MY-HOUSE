@@ -190,16 +190,20 @@ export class ExperienceController {
 
     this.greetingTransitionStarted = true
     this.busy = true
+    this.door.setKnockEnabled(false)
     this.knockController?.cancelIdleReturn()
 
     await this.knockController?.returnToOpenHand()
 
     if (this.state !== 'idle') {
       this.busy = false
+      this.greetingTransitionStarted = false
+      this.door.setKnockEnabled(true)
       return
     }
 
     this.state = 'greeting'
+    this.door.setKnockEnabled(true)
     await this.door.playGreeting()
 
     this.state = 'waiting-for-candy'
@@ -238,6 +242,7 @@ export class ExperienceController {
 
     if (this.knockCount >= KNOCKS_REQUIRED) {
       this.scheduleGreetingInactivityCheck()
+      this.door.setKnockEnabled(false)
     }
   }
 
