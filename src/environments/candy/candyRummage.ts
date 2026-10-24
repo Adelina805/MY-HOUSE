@@ -1,4 +1,5 @@
 import gsap from 'gsap'
+import { getBowlBoundaryRadii } from '../../config/bowlBoundaryRuntime'
 import { candyBowlConfig as config } from '../../config/candyBowl'
 
 export type CandyInteractionState = 'idle' | 'plunging' | 'rummaging'
@@ -16,6 +17,7 @@ export interface CandyRummageController {
   bind(): void
   dispose(): void
   reset(): void
+  respawnObjects(): void
   getState(): CandyInteractionState
 }
 
@@ -120,13 +122,14 @@ function clampObjectInBowl(
   rootWidth: number,
   rootHeight: number,
 ): { x: number; y: number } {
+  const { radiusX, radiusY } = getBowlBoundaryRadii()
   const marginX = sizePx / 2 / rootWidth
   const marginY = sizePx / 2 / rootHeight
   return clampNormalizedToEllipse(
     x,
     y,
-    Math.max(config.hands.boundary.radiusX - marginX, 0.08),
-    Math.max(config.hands.boundary.radiusY - marginY, 0.08),
+    Math.max(radiusX - marginX, 0.08),
+    Math.max(radiusY - marginY, 0.08),
   )
 }
 
@@ -690,7 +693,7 @@ export function createCandyRummageController(
       el.style.backgroundColor = `hsl(${hue} ${sat}% ${light}%)`
 
       const angle = Math.random() * Math.PI * 2
-      const r = 0.06 + Math.random() * 0.28
+      const r = 0.1 + Math.random() * 0.38
       const placed = clampObjectInBowl(
         0.5 + Math.cos(angle) * r,
         0.5 + Math.sin(angle) * r * 0.9,
@@ -779,6 +782,11 @@ export function createCandyRummageController(
       this.dispose()
       clearObjectLayers()
       state = 'idle'
+    },
+
+    respawnObjects(): void {
+      if (!bound) return
+      spawnObjects()
     },
 
     getState(): CandyInteractionState {

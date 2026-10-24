@@ -1,4 +1,10 @@
-/** Tune candy bowl plunge, hand tracking, and placeholder object reactions. */
+/**
+ * Tune candy bowl plunge, hand tracking, and placeholder object reactions.
+ *
+ * Bowl “in bounds” for candies = ellipse `hands.boundary` inside the objects layer
+ * (`--candy-objects-width/height` on `#app`). Dev: `?startAt=candy&bowlDebug=1`
+ * and the live panel (see src/core/candyBowlDebug.ts).
+ */
 export const candyBowlConfig = {
   plunge: {
     duration: 0.45,
@@ -32,8 +38,8 @@ export const candyBowlConfig = {
     maxRotationWobble: 6,
     /** Ellipse that keeps scattered objects inside the bowl (fraction of the objects area). */
     boundary: {
-      radiusX: 0.44,
-      radiusY: 0.42,
+      radiusX: 0.48,
+      radiusY: 0.39,
     },
   },
   objects: {

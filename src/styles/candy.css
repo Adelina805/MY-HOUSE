@@ -44,10 +44,10 @@
 
 .candy__objects {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--candy-objects-size);
-  height: var(--candy-objects-size);
+  left: var(--candy-objects-center-x, 50%);
+  top: var(--candy-objects-center-y, 50%);
+  width: var(--candy-objects-width);
+  height: var(--candy-objects-height);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
@@ -72,10 +72,10 @@
 
 .candy__take-target {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--candy-bowl-hit-size);
-  height: var(--candy-bowl-hit-size);
+  left: var(--candy-objects-center-x, 50%);
+  top: var(--candy-objects-center-y, 50%);
+  width: var(--candy-bowl-hit-width);
+  height: var(--candy-bowl-hit-height);
   transform: translate(-50%, -50%);
   padding: 0;
   border: none;
@@ -112,8 +112,158 @@
   border: 0;
 }
 
+/* Dev bowl alignment — enable with ?bowlDebug=1 */
+.candy__boundary-debug {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.candy__boundary-debug__ellipse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--bowl-debug-rx, 0.48) * 200%);
+  height: calc(var(--bowl-debug-ry, 0.39) * 200%);
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(255, 70, 200, 0.92);
+  border-radius: 50%;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+html.candy-bowl-debug .candy__boundary-debug {
+  display: block;
+}
+
+html.candy-bowl-debug .candy__objects {
+  outline: 1px dashed rgba(0, 220, 255, 0.85);
+  outline-offset: -1px;
+}
+
+html.candy-bowl-debug .hands-overlay__objects-front {
+  outline: 1px dashed rgba(0, 220, 255, 0.45);
+  outline-offset: -1px;
+}
+
+html.candy-bowl-debug .candy__take-target {
+  outline: 2px dashed rgba(255, 220, 0, 0.9);
+  outline-offset: 0;
+}
+
 @media (max-width: 480px) {
   .environment--candy {
     --candy-scene-position: center 48%;
   }
+}
+
+.bowl-debug-panel {
+  position: fixed;
+  /* Below experience-controls (Skip / CC) in the top-right corner */
+  top: max(3.75rem, calc(env(safe-area-inset-top, 0px) + 3.25rem));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 19;
+  width: min(18rem, calc(100vw - 1rem));
+  max-height: min(90vh, 32rem);
+  overflow: auto;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(12, 12, 14, 0.92);
+  color: #f2f2f2;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.bowl-debug-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.bowl-debug-panel__title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.bowl-debug-panel__hide {
+  flex-shrink: 0;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+.bowl-debug-chip {
+  position: fixed;
+  top: max(3.75rem, calc(env(safe-area-inset-top, 0px) + 3.25rem));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 19;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.68rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(12, 12, 14, 0.88);
+  color: #f2f2f2;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.bowl-debug-chip:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.bowl-debug-panel__hint {
+  margin: 0 0 0.5rem;
+  opacity: 0.75;
+}
+
+.bowl-debug-panel__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.35rem;
+  margin-bottom: 0.45rem;
+  align-items: center;
+}
+
+.bowl-debug-panel__row input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.bowl-debug-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.bowl-debug-panel__actions button {
+  flex: 1 1 auto;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.68rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+.bowl-debug-panel__export {
+  margin: 0;
+  padding: 0.35rem;
+  font-size: 0.62rem;
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  max-height: 6rem;
+  overflow: auto;
 }

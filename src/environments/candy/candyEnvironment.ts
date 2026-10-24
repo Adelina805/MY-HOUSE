@@ -54,6 +54,14 @@ export function createCandyEnvironment(): CandyEnvironment {
       const objectsEl = document.createElement('div')
       objectsEl.className = 'candy__objects'
       objectsEl.setAttribute('aria-hidden', 'true')
+
+      const boundaryDebug = document.createElement('div')
+      boundaryDebug.className = 'candy__boundary-debug'
+      boundaryDebug.setAttribute('aria-hidden', 'true')
+      boundaryDebug.innerHTML =
+        '<div class="candy__boundary-debug__ellipse"></div>'
+      objectsEl.appendChild(boundaryDebug)
+
       sceneEl.appendChild(objectsEl)
 
       const takeBtn = document.createElement('button')

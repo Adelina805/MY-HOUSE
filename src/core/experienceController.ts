@@ -21,6 +21,7 @@ import {
   handsKnockTiming,
   RightHandKnockController,
 } from './handsKnockAnimation'
+import { registerCandyRespawn } from './candyBowlDebug'
 import { createHandsOverlay, type HandsOverlay } from './handsOverlay'
 import type { ExperienceState } from './types'
 import type { KnockPoint } from '../environments/door/doorEnvironment'
@@ -143,6 +144,9 @@ export class ExperienceController {
       getObjectsRoot: () => this.candy.getObjectsRoot(),
       getObjectsFrontRoot: () => this.hands?.objectsFrontRoot ?? null,
     })
+    registerCandyRespawn(() => {
+      this.candyRummage?.respawnObjects()
+    })
 
     this.door.setHidden(false)
     this.candy.setHidden(true)
@@ -153,6 +157,27 @@ export class ExperienceController {
 
   showControls(): void {
     this.controls?.show()
+  }
+
+  /** Dev-only: jump to candy bowl without playing the door flow. */
+  devEnterCandyScene(): void {
+    if (!import.meta.env.DEV) return
+    this.clearGreetingInactivityTimer()
+    this.clearCandyAutoGoodbyeTimer()
+    this.busy = false
+    this.greetingTransitionStarted = true
+    this.knockCount = KNOCKS_REQUIRED
+    this.door.setHidden(true)
+    this.door.setKnockEnabled(false)
+    this.candy.setHidden(false)
+    const candyScene = this.candy.getSceneElement()
+    if (candyScene) {
+      gsap.set(candyScene, { opacity: 1 })
+    }
+    this.state = 'waiting-for-candy'
+    this.candy.setInteractive(true)
+    this.candyRummage?.bind()
+    this.scheduleCandyAutoGoodbye()
   }
 
   destroy(): void {

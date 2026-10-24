@@ -8,6 +8,8 @@ import './styles/controls.css'
 import { inject } from '@vercel/analytics'
 
 import { frame } from './config/composition'
+import { isDevStartAtCandy } from './config/bowlLayout'
+import { applyCandyBowlDebug } from './core/candyBowlDebug'
 import { ExperienceController } from './core/experienceController'
 import { preloadBootImages, waitForNextPaint } from './core/preloadAssets'
 import { createSplashScreen, playSplashIntro } from './core/splashScreen'
@@ -44,6 +46,10 @@ async function boot(app: HTMLDivElement): Promise<void> {
 
   const experience = new ExperienceController(app)
   experience.start()
+  applyCandyBowlDebug(app)
+  if (isDevStartAtCandy()) {
+    experience.devEnterCandyScene()
+  }
   await waitForNextPaint()
   app.classList.remove('app--booting')
   experience.showControls()
