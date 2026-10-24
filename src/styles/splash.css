@@ -20,6 +20,7 @@
   background-position: center;
   background-repeat: no-repeat;
   pointer-events: auto;
+  touch-action: manipulation;
   will-change: opacity;
 }
 

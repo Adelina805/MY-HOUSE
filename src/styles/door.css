@@ -184,6 +184,8 @@
   border: none;
   background: transparent;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .door__sr-only {

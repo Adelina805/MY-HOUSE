@@ -215,6 +215,7 @@ html.candy-bowl-debug .candy__take-target {
   color: #f2f2f2;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .bowl-debug-chip:focus-visible {
@@ -255,6 +256,7 @@ html.candy-bowl-debug .candy__take-target {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
+  touch-action: manipulation;
 }
 
 .bowl-debug-panel__export {
