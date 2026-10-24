@@ -32,6 +32,12 @@
   user-select: none;
   -webkit-user-drag: none;
   will-change: transform;
+  z-index: 2;
+}
+
+.hands-overlay__objects-front {
+  z-index: 3;
+  overflow: hidden;
 }
 
 .hands-overlay__hand--left {

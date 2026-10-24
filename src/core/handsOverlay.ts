@@ -4,6 +4,8 @@ export interface HandsOverlay {
   element: HTMLElement
   leftHand: HTMLImageElement
   rightHand: HTMLImageElement
+  /** Foreground candy shapes — above hands for depth mixing. */
+  objectsFrontRoot: HTMLElement
 }
 
 export function createHandsOverlay(): HandsOverlay {
@@ -25,6 +27,15 @@ export function createHandsOverlay(): HandsOverlay {
   right.draggable = false
   right.decoding = 'sync'
 
-  overlay.append(left, right)
-  return { element: overlay, leftHand: left, rightHand: right }
+  const objectsFront = document.createElement('div')
+  objectsFront.className = 'hands-overlay__objects-front candy__objects'
+  objectsFront.setAttribute('aria-hidden', 'true')
+
+  overlay.append(left, right, objectsFront)
+  return {
+    element: overlay,
+    leftHand: left,
+    rightHand: right,
+    objectsFrontRoot: objectsFront,
+  }
 }

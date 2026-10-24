@@ -58,6 +58,9 @@ button:focus-visible {
 }
 
 .experience {
+  --candy-objects-size: min(51vw, 300px);
+  --candy-bowl-hit-size: min(58vw, 340px);
+
   position: absolute;
   inset: 0;
   width: 100%;
@@ -94,6 +97,11 @@ button:focus-visible {
 @media (max-width: 480px) {
   :root {
     --frame-thickness: var(--frame-thickness-mobile, 10px);
+  }
+
+  .experience {
+    --candy-objects-size: min(63vw, 282px);
+    --candy-bowl-hit-size: min(72vw, 320px);
   }
 }
 

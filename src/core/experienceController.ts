@@ -141,6 +141,7 @@ export class ExperienceController {
       rightHand: hands.rightHand,
       getBowlTarget: () => this.candy.getBowlTarget(),
       getObjectsRoot: () => this.candy.getObjectsRoot(),
+      getObjectsFrontRoot: () => this.hands?.objectsFrontRoot ?? null,
     })
 
     this.door.setHidden(false)

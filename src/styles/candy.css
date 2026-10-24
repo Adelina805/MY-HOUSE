@@ -46,12 +46,12 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(86vw, 600px);
-  height: min(86vw, 600px);
+  width: var(--candy-objects-size);
+  height: var(--candy-objects-size);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .candy__object {
@@ -74,8 +74,8 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(58vw, 340px);
-  height: min(58vw, 340px);
+  width: var(--candy-bowl-hit-size);
+  height: var(--candy-bowl-hit-size);
   transform: translate(-50%, -50%);
   padding: 0;
   border: none;
@@ -115,15 +115,5 @@
 @media (max-width: 480px) {
   .environment--candy {
     --candy-scene-position: center 48%;
-  }
-
-  .candy__objects {
-    width: min(92vw, 540px);
-    height: min(92vw, 540px);
-  }
-
-  .candy__take-target {
-    width: min(72vw, 320px);
-    height: min(72vw, 320px);
   }
 }

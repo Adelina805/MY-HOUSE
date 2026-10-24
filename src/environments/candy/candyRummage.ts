@@ -9,6 +9,7 @@ export interface CandyRummageOptions {
   rightHand: HTMLImageElement
   getBowlTarget: () => HTMLElement | null
   getObjectsRoot: () => HTMLElement | null
+  getObjectsFrontRoot: () => HTMLElement | null
 }
 
 export interface CandyRummageController {
@@ -18,8 +19,11 @@ export interface CandyRummageController {
   getState(): CandyInteractionState
 }
 
+type ObjectLayer = 'behind' | 'front'
+
 interface BowlObject {
   el: HTMLElement
+  layer: ObjectLayer
   x: number
   y: number
   baseX: number
@@ -109,6 +113,23 @@ function clampNormalizedToEllipse(
   return { x: cx + dx * scale, y: cy + dy * scale }
 }
 
+function clampObjectInBowl(
+  x: number,
+  y: number,
+  sizePx: number,
+  rootWidth: number,
+  rootHeight: number,
+): { x: number; y: number } {
+  const marginX = sizePx / 2 / rootWidth
+  const marginY = sizePx / 2 / rootHeight
+  return clampNormalizedToEllipse(
+    x,
+    y,
+    Math.max(config.hands.boundary.radiusX - marginX, 0.08),
+    Math.max(config.hands.boundary.radiusY - marginY, 0.08),
+  )
+}
+
 function readGsapHandState(hand: HTMLElement): {
   x: number
   y: number
@@ -164,8 +185,23 @@ function translateForFingertipTarget(
 export function createCandyRummageController(
   options: CandyRummageOptions,
 ): CandyRummageController {
-  const { overlay, leftHand, rightHand, getBowlTarget, getObjectsRoot } =
-    options
+  const {
+    overlay,
+    leftHand,
+    rightHand,
+    getBowlTarget,
+    getObjectsRoot,
+    getObjectsFrontRoot,
+  } = options
+
+  function rootForLayer(layer: ObjectLayer): HTMLElement | null {
+    return layer === 'front' ? getObjectsFrontRoot() : getObjectsRoot()
+  }
+
+  function clearObjectLayers(): void {
+    getObjectsRoot()?.replaceChildren()
+    getObjectsFrontRoot()?.replaceChildren()
+  }
 
   let state: CandyInteractionState = 'idle'
   let bound = false
@@ -549,19 +585,24 @@ export function createCandyRummageController(
     mid: { x: number; y: number },
     bowlRect: DOMRect,
   ): void {
-    const root = getObjectsRoot()
-    if (!root || objects.length === 0) return
+    if (objects.length === 0) return
 
-    const rootRect = root.getBoundingClientRect()
+    const behindRoot = getObjectsRoot()
+    const behindRect = behindRoot?.getBoundingClientRect()
+    if (!behindRect) return
+
     const overlayRect = overlay.getBoundingClientRect()
-    const handX = mid.x - (rootRect.left - overlayRect.left)
-    const handY = mid.y - (rootRect.top - overlayRect.top)
+    const handX = mid.x - (behindRect.left - overlayRect.left)
+    const handY = mid.y - (behindRect.top - overlayRect.top)
 
     const radius = bowlRect.width * config.objects.interactionRadius
     const strength =
       config.objects.pushStrength * (1 + Math.min(handSpeed * 8, 1.5))
 
     for (const obj of objects) {
+      const layerRoot = rootForLayer(obj.layer)
+      const rootRect = layerRoot?.getBoundingClientRect() ?? behindRect
+
       const ox = obj.x * rootRect.width
       const oy = obj.y * rootRect.height
       const dx = ox - handX
@@ -577,11 +618,12 @@ export function createCandyRummageController(
       obj.x += (nx * push) / rootRect.width
       obj.y += (ny * push) / rootRect.height
 
-      const clamped = clampNormalizedToEllipse(
+      const clamped = clampObjectInBowl(
         obj.x,
         obj.y,
-        config.hands.boundary.radiusX,
-        config.hands.boundary.radiusY,
+        obj.size,
+        rootRect.width,
+        rootRect.height,
       )
       obj.x = clamped.x
       obj.y = clamped.y
@@ -617,14 +659,19 @@ export function createCandyRummageController(
   }
 
   function spawnObjects(): void {
-    const root = getObjectsRoot()
-    if (!root) return
-    root.replaceChildren()
+    const behindRoot = getObjectsRoot()
+    if (!behindRoot) return
+    clearObjectLayers()
     objects = []
 
     const cfg = config.objects
-    const rootRect = root.getBoundingClientRect()
+    const layoutRect = behindRoot.getBoundingClientRect()
     for (let i = 0; i < cfg.count; i += 1) {
+      const layer: ObjectLayer =
+        Math.random() < cfg.frontLayerChance ? 'front' : 'behind'
+      const root = rootForLayer(layer)
+      if (!root) continue
+
       const el = document.createElement('div')
       const isCircle = Math.random() > 0.5
       el.className = `candy__object candy__object--${isCircle ? 'circle' : 'square'}`
@@ -643,23 +690,25 @@ export function createCandyRummageController(
       el.style.backgroundColor = `hsl(${hue} ${sat}% ${light}%)`
 
       const angle = Math.random() * Math.PI * 2
-      const r = 0.2 + Math.random() * 0.34
-      const placed = clampNormalizedToEllipse(
+      const r = 0.06 + Math.random() * 0.28
+      const placed = clampObjectInBowl(
         0.5 + Math.cos(angle) * r,
-        0.5 + Math.sin(angle) * r * 0.86,
-        config.hands.boundary.radiusX,
-        config.hands.boundary.radiusY,
+        0.5 + Math.sin(angle) * r * 0.9,
+        size,
+        layoutRect.width,
+        layoutRect.height,
       )
 
       root.appendChild(el)
       gsap.set(el, {
-        x: placed.x * rootRect.width,
-        y: placed.y * rootRect.height,
+        x: placed.x * layoutRect.width,
+        y: placed.y * layoutRect.height,
         xPercent: -50,
         yPercent: -50,
       })
       objects.push({
         el,
+        layer,
         x: placed.x,
         y: placed.y,
         baseX: placed.x,
@@ -720,6 +769,7 @@ export function createCandyRummageController(
       window.removeEventListener('resize', onViewportChange)
       window.visualViewport?.removeEventListener('resize', onViewportChange)
       clearHands()
+      clearObjectLayers()
       objects = []
       state = 'idle'
       lastMid = null
@@ -727,8 +777,7 @@ export function createCandyRummageController(
 
     reset(): void {
       this.dispose()
-      const root = getObjectsRoot()
-      root?.replaceChildren()
+      clearObjectLayers()
       state = 'idle'
     },
 

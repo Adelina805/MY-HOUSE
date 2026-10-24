@@ -32,14 +32,16 @@ export const candyBowlConfig = {
     maxRotationWobble: 6,
     /** Ellipse that keeps scattered objects inside the bowl (fraction of the objects area). */
     boundary: {
-      radiusX: 0.52,
-      radiusY: 0.48,
+      radiusX: 0.44,
+      radiusY: 0.42,
     },
   },
   objects: {
-    count: 18,
-    sizeMinPx: 88,
-    sizeMaxPx: 156,
+    count: 32,
+    /** Fraction of objects drawn in front of the hands (rest stay behind). */
+    frontLayerChance: 0.5,
+    sizeMinPx: 40,
+    sizeMaxPx: 72,
     blueHueMin: 205,
     blueHueMax: 230,
     blueSatMin: 45,
