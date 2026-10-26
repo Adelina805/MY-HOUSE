@@ -1,16 +1,32 @@
 import gsap from 'gsap'
 import { getBowlBoundaryRadii } from '../../config/bowlBoundaryRuntime'
 import { candyBowlConfig as config } from '../../config/candyBowl'
+import {
+  clearSessionPrize,
+  fallbackPrize,
+  getSessionPrize,
+  prizeFromBowlObjectStyle,
+  setSessionPrize,
+  type Prize,
+} from '../../config/prizeCatalog'
+import type { CuppedRevealElements } from '../../core/handsOverlay'
 
-export type CandyInteractionState = 'idle' | 'plunging' | 'rummaging'
+export type CandyInteractionState =
+  | 'idle'
+  | 'plunging'
+  | 'rummaging'
+  | 'grabbing'
+  | 'revealing'
 
 export interface CandyRummageOptions {
   overlay: HTMLElement
   leftHand: HTMLImageElement
   rightHand: HTMLImageElement
+  cuppedReveal: CuppedRevealElements
   getBowlTarget: () => HTMLElement | null
   getObjectsRoot: () => HTMLElement | null
   getObjectsFrontRoot: () => HTMLElement | null
+  onPrizeRevealed?: (prize: Prize) => void
 }
 
 export interface CandyRummageController {
@@ -19,6 +35,14 @@ export interface CandyRummageController {
   reset(): void
   respawnObjects(): void
   getState(): CandyInteractionState
+  beginPlungeFromKeyboard(): void
+  tryGrabFromKeyboard(): void
+  /** Stop rummage input and candy objects; keep cupped hands + prize visible. */
+  detachRummageForGoodbye(): void
+  isCuppedRevealActive(): boolean
+  dismissCuppedReveal(): void
+  /** Lock cupped hands visible after GSAP reveal (clears inline transform conflicts). */
+  commitCuppedReveal(): void
 }
 
 type ObjectLayer = 'behind' | 'front'
@@ -171,6 +195,13 @@ function readHandTranslate(hand: HTMLElement): { x: number; y: number } {
   return { x: m.m41, y: m.m42 }
 }
 
+function readHandRotation(hand: HTMLElement): number {
+  const tr = getComputedStyle(hand).transform
+  if (!tr || tr === 'none') return 0
+  const m = new DOMMatrixReadOnly(tr)
+  return Math.atan2(m.m12, m.m11) * (180 / Math.PI)
+}
+
 function translateForFingertipTarget(
   hand: HTMLElement,
   overlay: HTMLElement,
@@ -192,9 +223,11 @@ export function createCandyRummageController(
     overlay,
     leftHand,
     rightHand,
+    cuppedReveal,
     getBowlTarget,
     getObjectsRoot,
     getObjectsFrontRoot,
+    onPrizeRevealed,
   } = options
 
   function rootForLayer(layer: ObjectLayer): HTMLElement | null {
@@ -224,6 +257,9 @@ export function createCandyRummageController(
   let lastMid: { x: number; y: number } | null = null
   let lastMoveTime = 0
   let handSpeed = 0
+  let rummagingStartedAt = 0
+  let grabTimeline: gsap.core.Timeline | null = null
+  let grabStarted = false
 
   const reduced = prefersReducedMotion()
 
@@ -240,7 +276,35 @@ export function createCandyRummageController(
     if (state !== 'rummaging') return
     if (event.button !== 0) return
     pointerClient = { x: event.clientX, y: event.clientY }
+
+    const bowl = getBowlTarget()
+    if (
+      bowl &&
+      canGrab() &&
+      pointInElement(event.clientX, event.clientY, bowl)
+    ) {
+      event.preventDefault()
+      beginGrab(event.clientX, event.clientY)
+      return
+    }
+
     applyFollow(event.clientX, event.clientY)
+  }
+
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    if (state === 'idle') {
+      event.preventDefault()
+      beginPlunge()
+      return
+    }
+    if (state === 'rummaging' && canGrab()) {
+      event.preventDefault()
+      const bowl = getBowlTarget()
+      if (!bowl) return
+      const rect = bowl.getBoundingClientRect()
+      beginGrab(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    }
   }
 
   const onPointerMove = (event: PointerEvent): void => {
@@ -507,6 +571,7 @@ export function createCandyRummageController(
     gsap.killTweensOf([leftHand, rightHand])
 
     state = 'rummaging'
+    rummagingStartedAt = performance.now()
     pose = handoffHandsToInlineTracking()
     followActive = true
     lastMid = { ...center }
@@ -721,10 +786,375 @@ export function createCandyRummageController(
     }
   }
 
-  function clearHands(): void {
+  function canGrab(): boolean {
+    if (grabStarted || state !== 'rummaging') return false
+    const elapsed = (performance.now() - rummagingStartedAt) / 1000
+    return elapsed >= config.reveal.minRummageBeforeGrabSec
+  }
+
+  function prizeAtMid(mid: { x: number; y: number }): Prize {
+    if (getSessionPrize()) return getSessionPrize()!
+
+    const behindRoot = getObjectsRoot()
+    const behindRect = behindRoot?.getBoundingClientRect()
+    const overlayRect = overlay.getBoundingClientRect()
+    if (!behindRect || objects.length === 0) {
+      const prize = fallbackPrize()
+      setSessionPrize(prize)
+      return prize
+    }
+
+    const handX = mid.x - (behindRect.left - overlayRect.left)
+    const handY = mid.y - (behindRect.top - overlayRect.top)
+
+    let best: BowlObject | null = null
+    let bestDist = Infinity
+    for (const obj of objects) {
+      const layerRoot = rootForLayer(obj.layer)
+      const rootRect = layerRoot?.getBoundingClientRect() ?? behindRect
+      const ox = obj.x * rootRect.width
+      const oy = obj.y * rootRect.height
+      const dist = Math.hypot(ox - handX, oy - handY)
+      if (dist < bestDist) {
+        bestDist = dist
+        best = obj
+      }
+    }
+
+    if (!best) {
+      const prize = fallbackPrize()
+      setSessionPrize(prize)
+      return prize
+    }
+
+    const bg = best.el.style.backgroundColor || '#e53935'
+    const shape = best.el.classList.contains('candy__object--circle')
+      ? 'circle'
+      : 'square'
+    const index = objects.indexOf(best)
+    const prize = prizeFromBowlObjectStyle(bg, shape, index)
+    setSessionPrize(prize)
+    return prize
+  }
+
+  function applyPrizeToElement(prize: Prize): void {
+    const { prize: prizeEl, prizeVisual } = cuppedReveal
+    prizeEl.classList.toggle(
+      'hands-overlay__prize--circle',
+      prize.shape === 'circle',
+    )
+    prizeVisual.style.backgroundColor = prize.placeholderColor
+    prizeEl.setAttribute('aria-hidden', 'false')
+  }
+
+  let cuppedDismissed = false
+
+  function clearCuppedReveal(): void {
+    if (grabTimeline) {
+      grabTimeline.kill()
+      grabTimeline = null
+    }
+    const { root, motion, prize, prizeVisual } = cuppedReveal
+    gsap.killTweensOf([motion, prizeVisual])
+    gsap.set([motion, prizeVisual], { clearProps: 'all' })
+    motion.style.opacity = ''
+    prizeVisual.style.opacity = ''
+    prizeVisual.style.transform = ''
+    root.hidden = true
+    root.setAttribute('aria-hidden', 'true')
+    prize.setAttribute('aria-hidden', 'true')
+    overlay.classList.remove('hands-overlay--prize-reveal')
+    overlay.classList.remove('hands-overlay--cupped-persist')
+    leftHand.style.opacity = ''
+    rightHand.style.opacity = ''
+    cuppedDismissed = false
+  }
+
+  function commitCuppedReveal(): void {
+    const { root, motion, prizeVisual } = cuppedReveal
+    if (grabTimeline) {
+      grabTimeline.kill()
+      grabTimeline = null
+    }
+    gsap.killTweensOf([motion, prizeVisual])
+    gsap.set([motion, prizeVisual], { clearProps: 'all' })
+    root.hidden = false
+    root.removeAttribute('hidden')
+    root.setAttribute('aria-hidden', 'false')
+    motion.style.opacity = '1'
+    prizeVisual.style.opacity = '1'
+    prizeVisual.style.transform = 'scale(1)'
+  }
+
+  function isCuppedRevealActive(): boolean {
+    return (
+      !cuppedDismissed &&
+      !cuppedReveal.root.hidden &&
+      overlay.classList.contains('hands-overlay--prize-reveal')
+    )
+  }
+
+  function dismissCuppedReveal(): void {
+    if (!isCuppedRevealActive()) return
+    cuppedDismissed = true
+    const { motion, prize, prizeVisual } = cuppedReveal
+    const fadeDur = reduced ? 0.12 : 0.35
+    gsap.to([motion, prizeVisual], {
+      opacity: 0,
+      duration: fadeDur,
+      ease: 'power2.out',
+      onComplete: () => {
+        clearCuppedReveal()
+        leftHand.style.visibility = 'hidden'
+        rightHand.style.visibility = 'hidden'
+      },
+    })
+    gsap.to(prize, {
+      opacity: 0,
+      duration: fadeDur,
+      ease: 'power2.out',
+    })
+  }
+
+  function scatterObjectsFrom(mid: { x: number; y: number }): void {
+    const behindRoot = getObjectsRoot()
+    const behindRect = behindRoot?.getBoundingClientRect()
+    const overlayRect = overlay.getBoundingClientRect()
+    if (!behindRect) return
+
+    const handX = mid.x - (behindRect.left - overlayRect.left)
+    const handY = mid.y - (behindRect.top - overlayRect.top)
+    const scatterDur = reduced ? 0.05 : config.reveal.scatterDuration
+
+    for (const obj of objects) {
+      const layerRoot = rootForLayer(obj.layer)
+      const rootRect = layerRoot?.getBoundingClientRect() ?? behindRect
+      const ox = obj.x * rootRect.width
+      const oy = obj.y * rootRect.height
+      const dx = ox - handX
+      const dy = oy - handY
+      const dist = Math.hypot(dx, dy) || 1
+      const push = 0.12 + Math.min(dist / rootRect.width, 0.2)
+      const nx = dx / dist
+      const ny = dy / dist
+      obj.x += (nx * push)
+      obj.y += (ny * push * 0.9)
+      const clamped = clampObjectInBowl(
+        obj.x,
+        obj.y,
+        obj.size,
+        rootRect.width,
+        rootRect.height,
+      )
+      obj.x = clamped.x
+      obj.y = clamped.y
+      const tx = obj.x * rootRect.width
+      const ty = obj.y * rootRect.height
+      gsap.to(obj.el, {
+        x: tx,
+        y: ty,
+        xPercent: -50,
+        yPercent: -50,
+        rotation: `+=${(Math.random() - 0.5) * 90}`,
+        opacity: 0.35,
+        duration: scatterDur,
+        ease: 'power2.out',
+        overwrite: 'auto',
+      })
+    }
+  }
+
+  function beginGrab(clientX: number, clientY: number): void {
+    if (!canGrab() || !pose) return
+    grabStarted = true
+    state = 'grabbing'
+    stopFollowLoop()
+
+    const mid = overlayPoint(clientX, clientY, overlay)
+    const prize = prizeAtMid(mid)
+    applyPrizeToElement(prize)
+
+    const grabMid = lastMid ?? bowlCenterInOverlay()
+    const scale = pose.scale
+    const leftStart = readHandTranslate(leftHand)
+    const rightStart = readHandTranslate(rightHand)
+    const leftRotStart = readHandRotation(leftHand)
+    const rightRotStart = readHandRotation(rightHand)
+
+    const pinch = 6
+    const leftTipTarget = {
+      x: grabMid.x - pinch,
+      y: grabMid.y + 4,
+    }
+    const rightTipTarget = {
+      x: grabMid.x + pinch,
+      y: grabMid.y + 4,
+    }
+    const leftEnd = translateForFingertipTarget(
+      leftHand,
+      overlay,
+      config.hands.fingertip.left,
+      leftTipTarget,
+    )
+    const rightEnd = translateForFingertipTarget(
+      rightHand,
+      overlay,
+      config.hands.fingertip.right,
+      rightTipTarget,
+    )
+    const leftRotEnd = 10
+    const rightRotEnd = -10
+
+    const { root, motion, prizeVisual } = cuppedReveal
+    root.hidden = false
+    root.removeAttribute('hidden')
+    root.setAttribute('aria-hidden', 'false')
+    cuppedDismissed = false
+    overlay.classList.add('hands-overlay--prize-reveal')
+    overlay.classList.add('hands-overlay--cupped-persist')
+
+    const revealCfg = config.reveal
+    const grabDur = reduced ? 0.08 : revealCfg.grabDuration
+
+    if (reduced) {
+      paintHand(leftHand, leftOrigin, leftEnd.x, leftEnd.y, leftRotEnd, scale)
+      paintHand(
+        rightHand,
+        rightOrigin,
+        rightEnd.x,
+        rightEnd.y,
+        rightRotEnd,
+        scale,
+      )
+      leftHand.style.opacity = '0'
+      rightHand.style.opacity = '0'
+      scatterObjectsFrom(grabMid)
+      gsap.set(motion, { opacity: 1, y: 0 })
+      gsap.set(prizeVisual, { opacity: 1, scale: 1 })
+      state = 'revealing'
+      commitCuppedReveal()
+      onPrizeRevealed?.(prize)
+      return
+    }
+
+    const anim = {
+      lx: leftStart.x,
+      ly: leftStart.y,
+      lr: leftRotStart,
+      rx: rightStart.x,
+      ry: rightStart.y,
+      rr: rightRotStart,
+      handFade: 1,
+      cuppedOpacity: 0,
+      cuppedY: revealCfg.cuppedRisePx * 0.5,
+      prizeOpacity: 0,
+      prizeScale: 0.55,
+    }
+
+    gsap.set(motion, { opacity: 0, y: anim.cuppedY })
+    gsap.set(prizeVisual, { opacity: 0, scale: anim.prizeScale })
+
+    scatterObjectsFrom(grabMid)
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (grabTimeline === tl) grabTimeline = null
+        state = 'revealing'
+        leftHand.style.opacity = '0'
+        rightHand.style.opacity = '0'
+        commitCuppedReveal()
+        onPrizeRevealed?.(prize)
+      },
+    })
+    grabTimeline = tl
+
+    tl.to(
+      anim,
+      {
+        lx: leftEnd.x,
+        ly: leftEnd.y,
+        lr: leftRotEnd,
+        rx: rightEnd.x,
+        ry: rightEnd.y,
+        rr: rightRotEnd,
+        duration: grabDur,
+        ease: revealCfg.grabEase,
+        onUpdate: () => {
+          paintHand(leftHand, leftOrigin, anim.lx, anim.ly, anim.lr, scale)
+          paintHand(
+            rightHand,
+            rightOrigin,
+            anim.rx,
+            anim.ry,
+            anim.rr,
+            scale,
+          )
+        },
+      },
+      0,
+    )
+      .to(
+        anim,
+        {
+          handFade: 0,
+          duration: revealCfg.cuppedFadeIn,
+          ease: 'power1.out',
+          onUpdate: () => {
+            leftHand.style.opacity = String(anim.handFade)
+            rightHand.style.opacity = String(anim.handFade)
+          },
+        },
+        grabDur * 0.45,
+      )
+      .to(
+        anim,
+        {
+          cuppedOpacity: 1,
+          cuppedY: 0,
+          duration: revealCfg.cuppedFadeIn,
+          ease: 'power2.out',
+          onUpdate: () => {
+            gsap.set(motion, { opacity: anim.cuppedOpacity, y: anim.cuppedY })
+          },
+        },
+        grabDur * 0.5,
+      )
+      .to(
+        anim,
+        {
+          prizeOpacity: 1,
+          prizeScale: revealCfg.prizePopScale,
+          duration: revealCfg.prizePopDuration * 0.55,
+          ease: revealCfg.prizePopEase,
+          onUpdate: () => {
+            gsap.set(prizeVisual, {
+              opacity: anim.prizeOpacity,
+              scale: anim.prizeScale,
+            })
+          },
+        },
+        grabDur * 0.62,
+      )
+      .to(
+        anim,
+        {
+          prizeScale: 1,
+          duration: revealCfg.prizePopDuration * 0.45,
+          ease: 'power2.out',
+          onUpdate: () => {
+            gsap.set(prizeVisual, { scale: anim.prizeScale })
+          },
+        },
+        grabDur * 0.62 + revealCfg.prizePopDuration * 0.55,
+      )
+  }
+
+  function clearRummageHands(): void {
     stopFollowLoop()
     clearPlungeFallback()
     killPlunge()
+    grabStarted = false
+    rummagingStartedAt = 0
     gsap.killTweensOf([leftHand, rightHand])
     leftHand.classList.remove('hands-overlay__hand--rummaging')
     rightHand.classList.remove('hands-overlay__hand--rummaging')
@@ -737,6 +1167,24 @@ export function createCandyRummageController(
     rightHand.style.transformOrigin = ''
     pose = null
     pointerClient = null
+  }
+
+  function clearHands(): void {
+    clearRummageHands()
+    clearCuppedReveal()
+  }
+
+  function unbindListeners(): void {
+    if (!bound) return
+    bound = false
+    const bowl = getBowlTarget()
+    bowl?.removeEventListener('pointerdown', onPointerDown)
+    window.removeEventListener('pointerdown', onPointerDownAnywhere)
+    window.removeEventListener('pointermove', onPointerMove)
+    window.removeEventListener('mousemove', onMouseMove)
+    window.removeEventListener('resize', onViewportChange)
+    window.visualViewport?.removeEventListener('resize', onViewportChange)
+    window.removeEventListener('keydown', onKeyDown)
   }
 
   function killPlunge(): void {
@@ -759,29 +1207,44 @@ export function createCandyRummageController(
       window.addEventListener('mousemove', onMouseMove, { passive: true })
       window.addEventListener('resize', onViewportChange, { passive: true })
       window.visualViewport?.addEventListener('resize', onViewportChange)
+      window.addEventListener('keydown', onKeyDown)
     },
 
     dispose(): void {
-      if (!bound) return
-      bound = false
-      const bowl = getBowlTarget()
-      bowl?.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('pointerdown', onPointerDownAnywhere)
-      window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('resize', onViewportChange)
-      window.visualViewport?.removeEventListener('resize', onViewportChange)
+      unbindListeners()
       clearHands()
       clearObjectLayers()
       objects = []
       state = 'idle'
       lastMid = null
+      clearSessionPrize()
+      leftHand.style.visibility = ''
+      rightHand.style.visibility = ''
+    },
+
+    detachRummageForGoodbye(): void {
+      unbindListeners()
+      clearRummageHands()
+      clearObjectLayers()
+      objects = []
+      lastMid = null
+      if (state === 'grabbing' && grabTimeline) {
+        grabTimeline.kill()
+        grabTimeline = null
+        commitCuppedReveal()
+      }
+      if (state !== 'revealing') {
+        state = 'revealing'
+      }
+      leftHand.style.visibility = 'hidden'
+      rightHand.style.visibility = 'hidden'
     },
 
     reset(): void {
       this.dispose()
       clearObjectLayers()
       state = 'idle'
+      clearSessionPrize()
     },
 
     respawnObjects(): void {
@@ -791,6 +1254,31 @@ export function createCandyRummageController(
 
     getState(): CandyInteractionState {
       return state
+    },
+
+    beginPlungeFromKeyboard(): void {
+      if (state !== 'idle') return
+      beginPlunge()
+    },
+
+    tryGrabFromKeyboard(): void {
+      if (!canGrab()) return
+      const bowl = getBowlTarget()
+      if (!bowl) return
+      const rect = bowl.getBoundingClientRect()
+      beginGrab(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    },
+
+    isCuppedRevealActive(): boolean {
+      return isCuppedRevealActive()
+    },
+
+    dismissCuppedReveal(): void {
+      dismissCuppedReveal()
+    },
+
+    commitCuppedReveal(): void {
+      commitCuppedReveal()
     },
   }
 }

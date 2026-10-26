@@ -9,6 +9,7 @@ function imageUrlsForBoot(): string[] {
   if (assets.candy.image) urls.push(assets.candy.image)
   urls.push(assets.hands.left, assets.hands.right)
   if (assets.hands.fist) urls.push(assets.hands.fist)
+  if (assets.hands.cupped) urls.push(assets.hands.cupped)
   return [...new Set(urls)]
 }
 

@@ -29,6 +29,8 @@ export const assets = {
     right: '/media/hands/right-hand.png',
     /** Closed fist for knocking. Empty = keep open hand during knock animation. */
     fist: '/media/hands/knock.png',
+    /** Both palms cupped — prize reveal only. */
+    cupped: '/media/hands/hands.png',
   },
   audio: {
     /** Knock sound. Empty = silent knock animation only. */

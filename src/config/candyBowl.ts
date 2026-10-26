@@ -63,4 +63,20 @@ export const candyBowlConfig = {
     settleEase: 'power2.out',
     maxVelocity: 14,
   },
+  /** Prize grab + cupped-hands reveal (GSAP). */
+  reveal: {
+    /** Seconds in rummaging before a grab can register. */
+    minRummageBeforeGrabSec: 3,
+    /** Converge rummaging hands + transition to cupped image. */
+    grabDuration: 0.52,
+    scatterDuration: 0.38,
+    cuppedFadeIn: 0.28,
+    cuppedRisePx: 14,
+    prizePopDuration: 0.34,
+    prizePopScale: 1.08,
+    grabEase: 'power2.inOut',
+    prizePopEase: 'power2.out',
+    /** Pause on the candy scene with cupped hands before crossfading to goodbye. */
+    holdBeforeGoodbyeMs: 700,
+  },
 } as const

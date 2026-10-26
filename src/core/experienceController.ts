@@ -1,5 +1,6 @@
 import gsap from 'gsap'
 import { assets } from '../config/assets'
+import { candyBowlConfig } from '../config/candyBowl'
 import { transitions } from '../config/transitions'
 import {
   createCandyEnvironment,
@@ -43,11 +44,14 @@ export class ExperienceController {
   private knockController: RightHandKnockController | null = null
   private greetingInactivityTimer: ReturnType<typeof setTimeout> | null = null
   private candyAutoGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
+  private revealGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
   private greetingTransitionStarted = false
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
   private controls: AccessibilityControls | null = null
   private candyRummage: CandyRummageController | null = null
+  private cuppedDismissPointerHandler: ((event: PointerEvent) => void) | null =
+    null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -132,7 +136,21 @@ export class ExperienceController {
     })
     this.candy.bindTakeHandler(() => {
       const rummageState = this.candyRummage?.getState()
-      if (rummageState === 'plunging' || rummageState === 'rummaging') return
+      if (rummageState === 'idle') {
+        this.candyRummage?.beginPlungeFromKeyboard()
+        return
+      }
+      if (rummageState === 'rummaging') {
+        this.candyRummage?.tryGrabFromKeyboard()
+        return
+      }
+      if (
+        rummageState === 'plunging' ||
+        rummageState === 'grabbing' ||
+        rummageState === 'revealing'
+      ) {
+        return
+      }
       void this.handleTakeCandy()
     })
 
@@ -140,9 +158,14 @@ export class ExperienceController {
       overlay: hands.element,
       leftHand: hands.leftHand,
       rightHand: hands.rightHand,
+      cuppedReveal: hands.cuppedReveal,
       getBowlTarget: () => this.candy.getBowlTarget(),
       getObjectsRoot: () => this.candy.getObjectsRoot(),
       getObjectsFrontRoot: () => this.hands?.objectsFrontRoot ?? null,
+      onPrizeRevealed: () => {
+        this.clearCandyAutoGoodbyeTimer()
+        this.scheduleGoodbyeAfterReveal()
+      },
     })
     registerCandyRespawn(() => {
       this.candyRummage?.respawnObjects()
@@ -186,6 +209,8 @@ export class ExperienceController {
     gsap.killTweensOf(this.camera)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
+    this.clearRevealGoodbyeTimer()
+    this.unbindCuppedDismissOnTap()
     this.knockController?.dispose()
     this.knockController = null
     const doorScene = this.door.getSceneElement()
@@ -220,6 +245,22 @@ export class ExperienceController {
       clearTimeout(this.candyAutoGoodbyeTimer)
       this.candyAutoGoodbyeTimer = null
     }
+  }
+
+  private clearRevealGoodbyeTimer(): void {
+    if (this.revealGoodbyeTimer !== null) {
+      clearTimeout(this.revealGoodbyeTimer)
+      this.revealGoodbyeTimer = null
+    }
+  }
+
+  private scheduleGoodbyeAfterReveal(): void {
+    this.clearRevealGoodbyeTimer()
+    const delayMs = candyBowlConfig.reveal.holdBeforeGoodbyeMs
+    this.revealGoodbyeTimer = setTimeout(() => {
+      this.revealGoodbyeTimer = null
+      void this.leaveCandyForGoodbye()
+    }, delayMs)
   }
 
   private scheduleCandyAutoGoodbye(): void {
@@ -325,15 +366,21 @@ export class ExperienceController {
   }
 
   private async leaveCandyForGoodbye(): Promise<void> {
+    const rummageState = this.candyRummage?.getState()
+    if (rummageState === 'grabbing') return
     if (this.busy || this.state !== 'waiting-for-candy') return
     this.clearCandyAutoGoodbyeTimer()
     this.busy = true
     this.candy.setInteractive(false)
 
-    await this.candy.playTakeAnimation()
+    const cuppedActive = this.candyRummage?.isCuppedRevealActive() ?? false
+    if (!cuppedActive) {
+      await this.candy.playTakeAnimation()
+    }
     await this.animateTransitionToDoor()
 
     this.state = 'goodbye'
+    this.bindCuppedDismissOnTap()
     await this.door.playGoodbye()
 
     this.state = 'finished'
@@ -359,6 +406,8 @@ export class ExperienceController {
     this.door.setKnockEnabled(true)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
+    this.clearRevealGoodbyeTimer()
+    this.unbindCuppedDismissOnTap()
     this.greetingTransitionStarted = false
     this.knockCount = 0
     this.knockController?.dispose()
@@ -459,9 +508,42 @@ export class ExperienceController {
         outDuration * 0.82,
       )
 
-    this.candyRummage?.dispose()
+    this.candyRummage?.detachRummageForGoodbye()
     this.candy.setHidden(true)
     this.candy.resetSceneTransform()
     this.door.resetSceneTransform()
+  }
+
+  private bindCuppedDismissOnTap(): void {
+    this.unbindCuppedDismissOnTap()
+    if (!this.candyRummage?.isCuppedRevealActive()) return
+
+    this.cuppedDismissPointerHandler = (event: PointerEvent) => {
+      if (event.button !== 0) return
+      const target = event.target
+      if (target instanceof Element && target.closest('.experience-controls')) {
+        return
+      }
+      if (!this.candyRummage?.isCuppedRevealActive()) {
+        this.unbindCuppedDismissOnTap()
+        return
+      }
+      event.preventDefault()
+      this.candyRummage.dismissCuppedReveal()
+      this.unbindCuppedDismissOnTap()
+    }
+    window.addEventListener('pointerdown', this.cuppedDismissPointerHandler, {
+      capture: true,
+    })
+  }
+
+  private unbindCuppedDismissOnTap(): void {
+    if (!this.cuppedDismissPointerHandler) return
+    window.removeEventListener(
+      'pointerdown',
+      this.cuppedDismissPointerHandler,
+      { capture: true },
+    )
+    this.cuppedDismissPointerHandler = null
   }
 }
