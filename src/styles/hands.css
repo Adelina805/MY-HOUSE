@@ -90,7 +90,7 @@
   aspect-ratio: 1;
   transform: translate(
     calc(-50% + var(--prize-offset-x)),
-    calc(-50% + var(--prize-offset-y))
+    calc(-50% + var(--prize-offset-y) - 20px)
   );
   z-index: 1;
   pointer-events: none;

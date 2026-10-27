@@ -876,10 +876,12 @@ export function createCandyRummageController(
     }
     const { root, motion, prize, prizeVisual } = cuppedReveal
     gsap.killTweensOf([motion, prizeVisual])
-    gsap.set([motion, prizeVisual], { clearProps: 'all' })
+    gsap.set(motion, { clearProps: 'opacity,transform' })
+    gsap.set(prizeVisual, { clearProps: 'opacity,transform' })
     motion.style.opacity = ''
     prizeVisual.style.opacity = ''
     prizeVisual.style.transform = ''
+    prizeVisual.style.backgroundColor = ''
     root.hidden = true
     root.setAttribute('aria-hidden', 'true')
     prize.setAttribute('aria-hidden', 'true')
@@ -894,7 +896,8 @@ export function createCandyRummageController(
   function commitCuppedReveal(): void {
     const { root, motion, prizeVisual } = cuppedReveal
     gsap.killTweensOf([motion, prizeVisual])
-    gsap.set([motion, prizeVisual], { clearProps: 'all' })
+    gsap.set(motion, { clearProps: 'opacity,transform' })
+    gsap.set(prizeVisual, { clearProps: 'opacity,transform' })
     root.hidden = false
     root.removeAttribute('hidden')
     root.setAttribute('aria-hidden', 'false')
@@ -909,6 +912,10 @@ export function createCandyRummageController(
     motion.style.setProperty('transform', 'translate3d(0, 0, 0)')
     prizeVisual.style.setProperty('opacity', '1')
     prizeVisual.style.setProperty('transform', 'scale(1)')
+    const committedPrize = getSessionPrize()
+    if (committedPrize) {
+      applyPrizeToElement(committedPrize)
+    }
   }
 
   function emitCuppedOutro(prize: Prize): void {
