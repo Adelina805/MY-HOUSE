@@ -27,6 +27,8 @@ export interface CandyRummageOptions {
   getObjectsRoot: () => HTMLElement | null
   getObjectsFrontRoot: () => HTMLElement | null
   onPrizeRevealed?: (prize: Prize) => void
+  /** Fired when the visitor first plunges into the bowl (cancels idle auto-goodbye). */
+  onPlungeStart?: () => void
 }
 
 export interface CandyRummageController {
@@ -43,6 +45,8 @@ export interface CandyRummageController {
   dismissCuppedReveal(): void
   /** Lock cupped hands visible after GSAP reveal (clears inline transform conflicts). */
   commitCuppedReveal(): void
+  /** Idle / auto-goodbye path — cupped outro with fallback prize, then `onPrizeRevealed`. */
+  beginCuppedOutroForGoodbye(): boolean
 }
 
 type ObjectLayer = 'behind' | 'front'
@@ -228,6 +232,7 @@ export function createCandyRummageController(
     getObjectsRoot,
     getObjectsFrontRoot,
     onPrizeRevealed,
+    onPlungeStart,
   } = options
 
   function rootForLayer(layer: ObjectLayer): HTMLElement | null {
@@ -259,6 +264,8 @@ export function createCandyRummageController(
   let handSpeed = 0
   let rummagingStartedAt = 0
   let grabTimeline: gsap.core.Timeline | null = null
+  let grabRevealTimer: ReturnType<typeof setTimeout> | null = null
+  let grabFinishTimer: ReturnType<typeof setTimeout> | null = null
   let grabStarted = false
 
   const reduced = prefersReducedMotion()
@@ -442,6 +449,7 @@ export function createCandyRummageController(
     if (!bowl) return
 
     state = 'plunging'
+    onPlungeStart?.()
     prepareHandsForControl()
     killPlunge()
     clearPlungeFallback()
@@ -849,7 +857,19 @@ export function createCandyRummageController(
 
   let cuppedDismissed = false
 
+  function clearGrabTimers(): void {
+    if (grabRevealTimer !== null) {
+      clearTimeout(grabRevealTimer)
+      grabRevealTimer = null
+    }
+    if (grabFinishTimer !== null) {
+      clearTimeout(grabFinishTimer)
+      grabFinishTimer = null
+    }
+  }
+
   function clearCuppedReveal(): void {
+    clearGrabTimers()
     if (grabTimeline) {
       grabTimeline.kill()
       grabTimeline = null
@@ -865,6 +885,7 @@ export function createCandyRummageController(
     prize.setAttribute('aria-hidden', 'true')
     overlay.classList.remove('hands-overlay--prize-reveal')
     overlay.classList.remove('hands-overlay--cupped-persist')
+    overlay.classList.remove('hands-overlay--cupped-shown')
     leftHand.style.opacity = ''
     rightHand.style.opacity = ''
     cuppedDismissed = false
@@ -872,25 +893,103 @@ export function createCandyRummageController(
 
   function commitCuppedReveal(): void {
     const { root, motion, prizeVisual } = cuppedReveal
-    if (grabTimeline) {
-      grabTimeline.kill()
-      grabTimeline = null
-    }
     gsap.killTweensOf([motion, prizeVisual])
     gsap.set([motion, prizeVisual], { clearProps: 'all' })
     root.hidden = false
     root.removeAttribute('hidden')
     root.setAttribute('aria-hidden', 'false')
-    motion.style.opacity = '1'
-    prizeVisual.style.opacity = '1'
-    prizeVisual.style.transform = 'scale(1)'
+    motion.style.opacity = ''
+    motion.style.transform = ''
+    prizeVisual.style.opacity = ''
+    prizeVisual.style.transform = ''
+    overlay.classList.add('hands-overlay--cupped-shown')
+    overlay.classList.remove('hands-overlay--candy-rummage')
+    // Force visible even if a stale GSAP inline style is present.
+    motion.style.setProperty('opacity', '1')
+    motion.style.setProperty('transform', 'translate3d(0, 0, 0)')
+    prizeVisual.style.setProperty('opacity', '1')
+    prizeVisual.style.setProperty('transform', 'scale(1)')
+  }
+
+  function emitCuppedOutro(prize: Prize): void {
+    if (state === 'revealing') return
+    clearGrabTimers()
+    if (grabTimeline) {
+      grabTimeline.kill()
+      grabTimeline = null
+    }
+    grabStarted = true
+    state = 'revealing'
+    leftHand.style.opacity = '0'
+    rightHand.style.opacity = '0'
+    leftHand.style.visibility = 'hidden'
+    rightHand.style.visibility = 'hidden'
+    commitCuppedReveal()
+    onPrizeRevealed?.(prize)
+  }
+
+  function finishGrabReveal(prize: Prize): void {
+    emitCuppedOutro(prize)
+  }
+
+  function beginCuppedOutroForGoodbye(): boolean {
+    if (state === 'grabbing' || state === 'revealing' || isCuppedRevealActive()) {
+      return false
+    }
+
+    grabStarted = true
+    stopFollowLoop()
+    clearPlungeFallback()
+    killPlunge()
+    clearGrabTimers()
+    if (grabTimeline) {
+      grabTimeline.kill()
+      grabTimeline = null
+    }
+
+    const prize = getSessionPrize() ?? fallbackPrize()
+    if (!getSessionPrize()) {
+      setSessionPrize(prize)
+    }
+    applyPrizeToElement(prize)
+
+    const { root } = cuppedReveal
+    root.hidden = false
+    root.removeAttribute('hidden')
+    root.setAttribute('aria-hidden', 'false')
+    cuppedDismissed = false
+    overlay.classList.add('hands-overlay--prize-reveal')
+    overlay.classList.add('hands-overlay--cupped-persist')
+    overlay.classList.remove('hands-overlay--cupped-shown')
+    overlay.style.setProperty(
+      '--cupped-rise-start',
+      `${config.reveal.cuppedRisePx * 0.5}px`,
+    )
+
+    const fadeDur = reduced ? 0.05 : 0.2
+    gsap.to([leftHand, rightHand], {
+      opacity: 0,
+      duration: fadeDur,
+      ease: 'power1.out',
+    })
+
+    const delayMs = reduced
+      ? 0
+      : Math.max(config.reveal.cuppedFadeIn * 1000 * 0.85, 120)
+    grabRevealTimer = setTimeout(() => {
+      grabRevealTimer = null
+      emitCuppedOutro(prize)
+    }, delayMs)
+
+    return true
   }
 
   function isCuppedRevealActive(): boolean {
     return (
       !cuppedDismissed &&
       !cuppedReveal.root.hidden &&
-      overlay.classList.contains('hands-overlay--prize-reveal')
+      overlay.classList.contains('hands-overlay--prize-reveal') &&
+      overlay.classList.contains('hands-overlay--cupped-shown')
     )
   }
 
@@ -1005,7 +1104,7 @@ export function createCandyRummageController(
     const leftRotEnd = 10
     const rightRotEnd = -10
 
-    const { root, motion, prizeVisual } = cuppedReveal
+    const { root } = cuppedReveal
     root.hidden = false
     root.removeAttribute('hidden')
     root.setAttribute('aria-hidden', 'false')
@@ -1029,15 +1128,11 @@ export function createCandyRummageController(
       leftHand.style.opacity = '0'
       rightHand.style.opacity = '0'
       scatterObjectsFrom(grabMid)
-      gsap.set(motion, { opacity: 1, y: 0 })
-      gsap.set(prizeVisual, { opacity: 1, scale: 1 })
-      state = 'revealing'
-      commitCuppedReveal()
-      onPrizeRevealed?.(prize)
+      finishGrabReveal(prize)
       return
     }
 
-    const anim = {
+    const handAnim = {
       lx: leftStart.x,
       ly: leftStart.y,
       lr: leftRotStart,
@@ -1045,31 +1140,40 @@ export function createCandyRummageController(
       ry: rightStart.y,
       rr: rightRotStart,
       handFade: 1,
-      cuppedOpacity: 0,
-      cuppedY: revealCfg.cuppedRisePx * 0.5,
-      prizeOpacity: 0,
-      prizeScale: 0.55,
     }
 
-    gsap.set(motion, { opacity: 0, y: anim.cuppedY })
-    gsap.set(prizeVisual, { opacity: 0, scale: anim.prizeScale })
+    overlay.style.setProperty(
+      '--cupped-rise-start',
+      `${revealCfg.cuppedRisePx * 0.5}px`,
+    )
+    overlay.classList.remove('hands-overlay--cupped-shown')
 
     scatterObjectsFrom(grabMid)
 
+    const cuppedIn = grabDur * 0.5
+    const revealDelayMs = Math.max(cuppedIn * 1000, 80)
+    const finishDelayMs = Math.max((grabDur + revealCfg.cuppedFadeIn) * 1000, 160)
+
+    clearGrabTimers()
+    grabRevealTimer = setTimeout(() => {
+      grabRevealTimer = null
+      if (state !== 'grabbing' && state !== 'revealing') return
+      commitCuppedReveal()
+    }, revealDelayMs)
+    grabFinishTimer = setTimeout(() => {
+      grabFinishTimer = null
+      finishGrabReveal(prize)
+    }, finishDelayMs)
+
     const tl = gsap.timeline({
       onComplete: () => {
-        if (grabTimeline === tl) grabTimeline = null
-        state = 'revealing'
-        leftHand.style.opacity = '0'
-        rightHand.style.opacity = '0'
-        commitCuppedReveal()
-        onPrizeRevealed?.(prize)
+        finishGrabReveal(prize)
       },
     })
     grabTimeline = tl
 
     tl.to(
-      anim,
+      handAnim,
       {
         lx: leftEnd.x,
         ly: leftEnd.y,
@@ -1080,13 +1184,13 @@ export function createCandyRummageController(
         duration: grabDur,
         ease: revealCfg.grabEase,
         onUpdate: () => {
-          paintHand(leftHand, leftOrigin, anim.lx, anim.ly, anim.lr, scale)
+          paintHand(leftHand, leftOrigin, handAnim.lx, handAnim.ly, handAnim.lr, scale)
           paintHand(
             rightHand,
             rightOrigin,
-            anim.rx,
-            anim.ry,
-            anim.rr,
+            handAnim.rx,
+            handAnim.ry,
+            handAnim.rr,
             scale,
           )
         },
@@ -1094,59 +1198,19 @@ export function createCandyRummageController(
       0,
     )
       .to(
-        anim,
+        handAnim,
         {
           handFade: 0,
           duration: revealCfg.cuppedFadeIn,
           ease: 'power1.out',
           onUpdate: () => {
-            leftHand.style.opacity = String(anim.handFade)
-            rightHand.style.opacity = String(anim.handFade)
+            leftHand.style.opacity = String(handAnim.handFade)
+            rightHand.style.opacity = String(handAnim.handFade)
           },
         },
         grabDur * 0.45,
       )
-      .to(
-        anim,
-        {
-          cuppedOpacity: 1,
-          cuppedY: 0,
-          duration: revealCfg.cuppedFadeIn,
-          ease: 'power2.out',
-          onUpdate: () => {
-            gsap.set(motion, { opacity: anim.cuppedOpacity, y: anim.cuppedY })
-          },
-        },
-        grabDur * 0.5,
-      )
-      .to(
-        anim,
-        {
-          prizeOpacity: 1,
-          prizeScale: revealCfg.prizePopScale,
-          duration: revealCfg.prizePopDuration * 0.55,
-          ease: revealCfg.prizePopEase,
-          onUpdate: () => {
-            gsap.set(prizeVisual, {
-              opacity: anim.prizeOpacity,
-              scale: anim.prizeScale,
-            })
-          },
-        },
-        grabDur * 0.62,
-      )
-      .to(
-        anim,
-        {
-          prizeScale: 1,
-          duration: revealCfg.prizePopDuration * 0.45,
-          ease: 'power2.out',
-          onUpdate: () => {
-            gsap.set(prizeVisual, { scale: anim.prizeScale })
-          },
-        },
-        grabDur * 0.62 + revealCfg.prizePopDuration * 0.55,
-      )
+
   }
 
   function clearRummageHands(): void {
@@ -1279,6 +1343,10 @@ export function createCandyRummageController(
 
     commitCuppedReveal(): void {
       commitCuppedReveal()
+    },
+
+    beginCuppedOutroForGoodbye(): boolean {
+      return beginCuppedOutroForGoodbye()
     },
   }
 }

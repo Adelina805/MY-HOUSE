@@ -54,6 +54,9 @@ async function boot(app: HTMLDivElement): Promise<void> {
   app.classList.remove('app--booting')
   experience.showControls()
   await playSplashIntro(splash)
+  if (isDevStartAtCandy()) {
+    experience.startCandyIdleGoodbyeTimer()
+  }
 }
 
 void boot(mount)

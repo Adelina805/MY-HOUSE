@@ -162,6 +162,9 @@ export class ExperienceController {
       getBowlTarget: () => this.candy.getBowlTarget(),
       getObjectsRoot: () => this.candy.getObjectsRoot(),
       getObjectsFrontRoot: () => this.hands?.objectsFrontRoot ?? null,
+      onPlungeStart: () => {
+        this.clearCandyAutoGoodbyeTimer()
+      },
       onPrizeRevealed: () => {
         this.clearCandyAutoGoodbyeTimer()
         this.scheduleGoodbyeAfterReveal()
@@ -200,6 +203,11 @@ export class ExperienceController {
     this.state = 'waiting-for-candy'
     this.candy.setInteractive(true)
     this.candyRummage?.bind()
+  }
+
+  /** Idle fallback if the visitor never grabs a prize (after candy is actually visible). */
+  startCandyIdleGoodbyeTimer(): void {
+    if (this.state !== 'waiting-for-candy') return
     this.scheduleCandyAutoGoodbye()
   }
 
@@ -370,13 +378,18 @@ export class ExperienceController {
     if (rummageState === 'grabbing') return
     if (this.busy || this.state !== 'waiting-for-candy') return
     this.clearCandyAutoGoodbyeTimer()
+
+    if (!this.candyRummage?.isCuppedRevealActive()) {
+      const started = this.candyRummage?.beginCuppedOutroForGoodbye() ?? false
+      if (started) {
+        this.candy.setInteractive(false)
+        return
+      }
+    }
+
     this.busy = true
     this.candy.setInteractive(false)
 
-    const cuppedActive = this.candyRummage?.isCuppedRevealActive() ?? false
-    if (!cuppedActive) {
-      await this.candy.playTakeAnimation()
-    }
     await this.animateTransitionToDoor()
 
     this.state = 'goodbye'

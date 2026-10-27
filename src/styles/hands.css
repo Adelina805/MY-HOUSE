@@ -64,6 +64,11 @@
 
 .hands-overlay__cupped-reveal-motion {
   width: 100%;
+  opacity: 0;
+  transform: translate3d(0, var(--cupped-rise-start, 7px), 0);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
   will-change: transform, opacity;
 }
 
@@ -94,6 +99,11 @@
   width: 100%;
   height: 100%;
   border-radius: 3px;
+  opacity: 0;
+  transform: scale(0.55);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   will-change: transform, opacity;
 }
 
@@ -113,7 +123,24 @@
 
 /* Cupped hands stay on screen over the goodbye video until the visitor taps. */
 .hands-overlay--cupped-persist .hands-overlay__cupped-reveal {
-  z-index: 6;
+  z-index: 12;
+}
+
+.hands-overlay--cupped-shown .hands-overlay__cupped-reveal-motion {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.hands-overlay--cupped-shown .hands-overlay__prize-visual {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hands-overlay__cupped-reveal-motion,
+  .hands-overlay__prize-visual {
+    transition-duration: 0.12s;
+  }
 }
 
 .hands-overlay__hand--left {

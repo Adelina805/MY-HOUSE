@@ -68,7 +68,7 @@ export function createHandsOverlay(): HandsOverlay {
   objectsFront.className = 'hands-overlay__objects-front candy__objects'
   objectsFront.setAttribute('aria-hidden', 'true')
 
-  overlay.append(left, right, cuppedRoot, objectsFront)
+  overlay.append(left, right, objectsFront, cuppedRoot)
   return {
     element: overlay,
     leftHand: left,
