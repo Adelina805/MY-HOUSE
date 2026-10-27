@@ -44,6 +44,7 @@
 .hands-overlay__cupped-reveal {
   --cupped-hands-width: clamp(11rem, 78vw, 22rem);
   --cupped-hands-bottom: clamp(0.5rem, 4vh, 2.25rem);
+  --cupped-hands-drop: 45px;
   --cupped-hands-scale: 1;
   --cupped-hands-translate-x: -50%;
   --prize-width: clamp(2.75rem, 18vw, 4.5rem);
@@ -52,7 +53,7 @@
 
   position: absolute;
   left: 50%;
-  bottom: var(--cupped-hands-bottom);
+  bottom: calc(var(--cupped-hands-bottom) - var(--cupped-hands-drop));
   width: var(--cupped-hands-width);
   transform: translateX(var(--cupped-hands-translate-x))
     scale(var(--cupped-hands-scale));
@@ -114,6 +115,8 @@
 .hands-overlay--prize-reveal .hands-overlay__hand--left,
 .hands-overlay--prize-reveal .hands-overlay__hand--right {
   pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .hands-overlay--prize-reveal .hands-overlay__objects-front {
@@ -121,7 +124,7 @@
   transition: opacity 0.2s ease;
 }
 
-/* Cupped hands stay on screen over the goodbye video until the visitor taps. */
+/* Cupped hands stay on screen over the goodbye video; dismiss after goodbye ends. */
 .hands-overlay--cupped-persist .hands-overlay__cupped-reveal {
   z-index: 12;
 }

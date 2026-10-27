@@ -52,6 +52,7 @@ export class ExperienceController {
   private candyRummage: CandyRummageController | null = null
   private cuppedDismissPointerHandler: ((event: PointerEvent) => void) | null =
     null
+  private cuppedAutoDismissTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(host: HTMLElement) {
     this.host = host
@@ -218,6 +219,7 @@ export class ExperienceController {
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
     this.clearRevealGoodbyeTimer()
+    this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
     this.knockController?.dispose()
     this.knockController = null
@@ -393,11 +395,11 @@ export class ExperienceController {
     await this.animateTransitionToDoor()
 
     this.state = 'goodbye'
-    this.bindCuppedDismissOnTap()
     await this.door.playGoodbye()
 
     this.state = 'finished'
     this.door.applyFinishedState()
+    this.beginCuppedDismissPhase()
     this.busy = false
   }
 
@@ -420,6 +422,7 @@ export class ExperienceController {
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
     this.clearRevealGoodbyeTimer()
+    this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
     this.greetingTransitionStarted = false
     this.knockCount = 0
@@ -527,11 +530,45 @@ export class ExperienceController {
     this.door.resetSceneTransform()
   }
 
+  private clearCuppedAutoDismissTimer(): void {
+    if (this.cuppedAutoDismissTimer !== null) {
+      clearTimeout(this.cuppedAutoDismissTimer)
+      this.cuppedAutoDismissTimer = null
+    }
+  }
+
+  private dismissCuppedIfActive(): void {
+    if (!this.candyRummage?.isCuppedRevealActive()) {
+      this.clearCuppedAutoDismissTimer()
+      this.unbindCuppedDismissOnTap()
+      return
+    }
+    this.candyRummage.dismissCuppedReveal()
+    this.clearCuppedAutoDismissTimer()
+    this.unbindCuppedDismissOnTap()
+  }
+
+  private beginCuppedDismissPhase(): void {
+    if (!this.candyRummage?.isCuppedRevealActive()) return
+    this.bindCuppedDismissOnTap()
+    this.scheduleCuppedAutoDismissAfterGoodbye()
+  }
+
+  private scheduleCuppedAutoDismissAfterGoodbye(): void {
+    this.clearCuppedAutoDismissTimer()
+    if (!this.candyRummage?.isCuppedRevealActive()) return
+    this.cuppedAutoDismissTimer = setTimeout(() => {
+      this.cuppedAutoDismissTimer = null
+      this.dismissCuppedIfActive()
+    }, transitions.cuppedDismissAfterGoodbyeMs)
+  }
+
   private bindCuppedDismissOnTap(): void {
     this.unbindCuppedDismissOnTap()
     if (!this.candyRummage?.isCuppedRevealActive()) return
 
     this.cuppedDismissPointerHandler = (event: PointerEvent) => {
+      if (this.state !== 'finished') return
       if (event.button !== 0) return
       const target = event.target
       if (target instanceof Element && target.closest('.experience-controls')) {
@@ -542,8 +579,7 @@ export class ExperienceController {
         return
       }
       event.preventDefault()
-      this.candyRummage.dismissCuppedReveal()
-      this.unbindCuppedDismissOnTap()
+      this.dismissCuppedIfActive()
     }
     window.addEventListener('pointerdown', this.cuppedDismissPointerHandler, {
       capture: true,

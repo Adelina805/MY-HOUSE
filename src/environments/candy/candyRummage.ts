@@ -996,23 +996,29 @@ export function createCandyRummageController(
   function dismissCuppedReveal(): void {
     if (!isCuppedRevealActive()) return
     cuppedDismissed = true
-    const { motion, prize, prizeVisual } = cuppedReveal
-    const fadeDur = reduced ? 0.12 : 0.35
-    gsap.to([motion, prizeVisual], {
-      opacity: 0,
-      duration: fadeDur,
-      ease: 'power2.out',
-      onComplete: () => {
-        clearCuppedReveal()
-        leftHand.style.visibility = 'hidden'
-        rightHand.style.visibility = 'hidden'
-      },
-    })
-    gsap.to(prize, {
-      opacity: 0,
-      duration: fadeDur,
-      ease: 'power2.out',
-    })
+    const idleFadeDur = reduced ? 0.12 : 0.35
+    const cuppedCssFadeMs = reduced ? 120 : 280
+
+    gsap.killTweensOf([leftHand, rightHand])
+    leftHand.style.visibility = 'hidden'
+    rightHand.style.visibility = 'hidden'
+    overlay.classList.remove('hands-overlay--cupped-shown')
+
+    window.setTimeout(() => {
+      clearCuppedReveal()
+      clearRummageHands()
+      leftHand.style.visibility = 'visible'
+      rightHand.style.visibility = 'visible'
+      gsap.set([leftHand, rightHand], { opacity: 0 })
+      gsap.to([leftHand, rightHand], {
+        opacity: 1,
+        duration: idleFadeDur,
+        ease: 'power2.out',
+        onComplete: () => {
+          gsap.set([leftHand, rightHand], { clearProps: 'opacity' })
+        },
+      })
+    }, cuppedCssFadeMs)
   }
 
   function scatterObjectsFrom(mid: { x: number; y: number }): void {
