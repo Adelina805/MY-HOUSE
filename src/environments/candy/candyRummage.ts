@@ -768,17 +768,33 @@ export function createCandyRummageController(
       })
       el.appendChild(img)
 
-      const angle = Math.random() * Math.PI * 2
-      const mobile = window.innerWidth <= 480
-      // Mobile: area-uniform + wider reach. Desktop: original polar scatter.
-      const r = mobile
-        ? 0.14 + Math.sqrt(Math.random()) * 0.46
-        : 0.1 + Math.random() * 0.38
-      const placed = clampObjectInBowl(
-        0.5 + Math.cos(angle) * r,
-        0.5 + Math.sin(angle) * r * (mobile ? 0.92 : 0.9),
-        size,
-      )
+      let spawnX: number
+      let spawnY: number
+      if (window.innerWidth <= 480) {
+        // Uniform random fill of the ellipse (polar + min-r looked like a ring).
+        const { radiusX, radiusY } = getBowlBoundaryRadii()
+        let x = 0.5
+        let y = 0.5
+        for (let attempt = 0; attempt < 48; attempt++) {
+          const candidateX = 0.5 + (Math.random() * 2 - 1) * radiusX
+          const candidateY = 0.5 + (Math.random() * 2 - 1) * radiusY
+          const nx = (candidateX - 0.5) / radiusX
+          const ny = (candidateY - 0.5) / radiusY
+          if (nx * nx + ny * ny <= 1) {
+            x = candidateX
+            y = candidateY
+            break
+          }
+        }
+        spawnX = x
+        spawnY = y
+      } else {
+        const angle = Math.random() * Math.PI * 2
+        const r = 0.1 + Math.random() * 0.38
+        spawnX = 0.5 + Math.cos(angle) * r
+        spawnY = 0.5 + Math.sin(angle) * r * 0.9
+      }
+      const placed = clampObjectInBowl(spawnX, spawnY, size)
 
       root.appendChild(el)
       gsap.set(el, {

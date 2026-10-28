@@ -43,8 +43,8 @@ export const candyBowlConfig = {
     },
     /** Portrait: wider ellipse so the pile fills the circular colander. */
     boundaryMobile: {
-      radiusX: 0.52,
-      radiusY: 0.46,
+      radiusX: 0.58,
+      radiusY: 0.54,
     },
   },
   objects: {
