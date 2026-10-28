@@ -44,7 +44,7 @@
 .hands-overlay__cupped-reveal {
   --cupped-hands-width: clamp(11rem, 78vw, 22rem);
   --cupped-hands-bottom: clamp(0.5rem, 4vh, 2.25rem);
-  --cupped-hands-drop: 45px;
+  --cupped-hands-drop: 75px;
   --cupped-hands-scale: 1;
   --cupped-hands-translate-x: -50%;
   /* Fraction of cupped-hands width so the prize shrinks with hands on mobile. */
