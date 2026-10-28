@@ -60,6 +60,24 @@
   top: 0;
   will-change: transform;
   pointer-events: none;
+  background: transparent;
+}
+
+.candy__object-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Used when a prize WebP fails to load — keeps rummage physics alive. */
+.candy__object--fallback {
+  border-radius: 50%;
+  background: #9e9e9e;
 }
 
 .candy__object--circle {

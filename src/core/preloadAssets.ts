@@ -35,6 +35,16 @@ export async function preloadBootImages(): Promise<void> {
   await Promise.all(urls.map((url) => loadImage(url)))
 }
 
+/**
+ * Decode prize WebPs when the candy scene approaches.
+ * Soft-fails per URL so a missing asset never blocks the experience.
+ */
+export async function preloadPrizeImages(urls: string[]): Promise<void> {
+  const unique = [...new Set(urls.filter(Boolean))]
+  if (unique.length === 0) return
+  await Promise.all(unique.map((url) => loadImage(url).catch(() => undefined)))
+}
+
 export function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {

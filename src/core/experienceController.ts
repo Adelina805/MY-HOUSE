@@ -1,7 +1,9 @@
 import gsap from 'gsap'
 import { assets } from '../config/assets'
 import { candyBowlConfig } from '../config/candyBowl'
+import { prepareBowlPrizeSubset } from '../config/prizeCatalog'
 import { transitions } from '../config/transitions'
+import { preloadPrizeImages } from './preloadAssets'
 import {
   createCandyEnvironment,
   type CandyEnvironment,
@@ -194,6 +196,7 @@ export class ExperienceController {
     this.busy = false
     this.greetingTransitionStarted = true
     this.knockCount = KNOCKS_REQUIRED
+    this.prepareCandyPrizeAssets()
     this.door.setHidden(true)
     this.door.setKnockEnabled(false)
     this.candy.setHidden(false)
@@ -204,6 +207,12 @@ export class ExperienceController {
     this.state = 'waiting-for-candy'
     this.candy.setInteractive(true)
     this.candyRummage?.bind()
+  }
+
+  /** Pick bowl décor prizes and decode their WebPs during greeting (not on boot). */
+  private prepareCandyPrizeAssets(): void {
+    const bowlPrizes = prepareBowlPrizeSubset(candyBowlConfig.objects.count)
+    void preloadPrizeImages(bowlPrizes.map((prize) => prize.image))
   }
 
   /** Idle fallback if the visitor never grabs a prize (after candy is actually visible). */
@@ -314,6 +323,7 @@ export class ExperienceController {
 
     this.state = 'greeting'
     this.door.setKnockEnabled(true)
+    this.prepareCandyPrizeAssets()
     await this.door.playGreeting()
 
     this.state = 'waiting-for-candy'

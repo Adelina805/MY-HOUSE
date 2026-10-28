@@ -2,14 +2,18 @@ import gsap from 'gsap'
 import { getBowlBoundaryRadii } from '../../config/bowlBoundaryRuntime'
 import { candyBowlConfig as config } from '../../config/candyBowl'
 import {
+  clearPendingBowlPrizes,
   clearSessionPrize,
-  fallbackPrize,
+  ensureSessionPrize,
   getSessionPrize,
-  prizeFromBowlObjectStyle,
-  setSessionPrize,
-  type Prize,
+  takeBowlPrizeSubset,
+  type SelectedPrize,
 } from '../../config/prizeCatalog'
 import type { CuppedRevealElements } from '../../core/handsOverlay'
+import { preloadPrizeImages } from '../../core/preloadAssets'
+
+/** @deprecated Alias — prefer SelectedPrize. */
+type Prize = SelectedPrize
 
 export type CandyInteractionState =
   | 'idle'
@@ -742,28 +746,33 @@ export function createCandyRummageController(
 
     const cfg = config.objects
     const layoutRect = behindRoot.getBoundingClientRect()
-    for (let i = 0; i < cfg.count; i += 1) {
+    const defs = takeBowlPrizeSubset(cfg.count)
+
+    for (const def of defs) {
       const layer: ObjectLayer =
         Math.random() < cfg.frontLayerChance ? 'front' : 'behind'
       const root = rootForLayer(layer)
       if (!root) continue
 
       const el = document.createElement('div')
-      const isCircle = Math.random() > 0.5
-      el.className = `candy__object candy__object--${isCircle ? 'circle' : 'square'}`
+      el.className = 'candy__object'
+      el.setAttribute('data-prize-id', def.id)
 
-      const hue =
-        cfg.blueHueMin + Math.random() * (cfg.blueHueMax - cfg.blueHueMin)
-      const sat =
-        cfg.blueSatMin + Math.random() * (cfg.blueSatMax - cfg.blueSatMin)
-      const light =
-        cfg.blueLightMin +
-        Math.random() * (cfg.blueLightMax - cfg.blueLightMin)
-      const size =
-        cfg.sizeMinPx + Math.random() * (cfg.sizeMaxPx - cfg.sizeMinPx)
+      const size = cfg.sizePx
       el.style.width = `${size}px`
       el.style.height = `${size}px`
-      el.style.backgroundColor = `hsl(${hue} ${sat}% ${light}%)`
+
+      const img = document.createElement('img')
+      img.className = 'candy__object-image'
+      img.src = def.image
+      img.alt = ''
+      img.draggable = false
+      img.decoding = 'async'
+      img.addEventListener('error', () => {
+        img.remove()
+        el.classList.add('candy__object--fallback')
+      })
+      el.appendChild(img)
 
       const angle = Math.random() * Math.PI * 2
       const r = 0.1 + Math.random() * 0.38
@@ -781,6 +790,7 @@ export function createCandyRummageController(
         y: placed.y * layoutRect.height,
         xPercent: -50,
         yPercent: -50,
+        rotation: (Math.random() - 0.5) * 56,
       })
       objects.push({
         el,
@@ -800,58 +810,38 @@ export function createCandyRummageController(
     return elapsed >= config.reveal.minRummageBeforeGrabSec
   }
 
-  function prizeAtMid(mid: { x: number; y: number }): Prize {
-    if (getSessionPrize()) return getSessionPrize()!
-
-    const behindRoot = getObjectsRoot()
-    const behindRect = behindRoot?.getBoundingClientRect()
-    const overlayRect = overlay.getBoundingClientRect()
-    if (!behindRect || objects.length === 0) {
-      const prize = fallbackPrize()
-      setSessionPrize(prize)
-      return prize
+  function prizeAtMid(_mid: { x: number; y: number }): Prize {
+    const prize = ensureSessionPrize()
+    if (prize.imagePath) {
+      void preloadPrizeImages([prize.imagePath])
     }
-
-    const handX = mid.x - (behindRect.left - overlayRect.left)
-    const handY = mid.y - (behindRect.top - overlayRect.top)
-
-    let best: BowlObject | null = null
-    let bestDist = Infinity
-    for (const obj of objects) {
-      const layerRoot = rootForLayer(obj.layer)
-      const rootRect = layerRoot?.getBoundingClientRect() ?? behindRect
-      const ox = obj.x * rootRect.width
-      const oy = obj.y * rootRect.height
-      const dist = Math.hypot(ox - handX, oy - handY)
-      if (dist < bestDist) {
-        bestDist = dist
-        best = obj
-      }
-    }
-
-    if (!best) {
-      const prize = fallbackPrize()
-      setSessionPrize(prize)
-      return prize
-    }
-
-    const bg = best.el.style.backgroundColor || '#e53935'
-    const shape = best.el.classList.contains('candy__object--circle')
-      ? 'circle'
-      : 'square'
-    const index = objects.indexOf(best)
-    const prize = prizeFromBowlObjectStyle(bg, shape, index)
-    setSessionPrize(prize)
     return prize
   }
 
   function applyPrizeToElement(prize: Prize): void {
     const { prize: prizeEl, prizeVisual } = cuppedReveal
-    prizeEl.classList.toggle(
-      'hands-overlay__prize--circle',
-      prize.shape === 'circle',
-    )
-    prizeVisual.style.backgroundColor = prize.placeholderColor
+    prizeEl.classList.remove('hands-overlay__prize--circle')
+    prizeVisual.style.backgroundColor = ''
+    prizeVisual.replaceChildren()
+    prizeVisual.classList.remove('hands-overlay__prize-visual--fallback')
+
+    if (!prize.imagePath) {
+      prizeVisual.classList.add('hands-overlay__prize-visual--fallback')
+      prizeEl.setAttribute('aria-hidden', 'false')
+      return
+    }
+
+    const img = document.createElement('img')
+    img.className = 'hands-overlay__prize-image'
+    img.src = prize.imagePath
+    img.alt = prize.fullName
+    img.draggable = false
+    img.decoding = 'async'
+    img.addEventListener('error', () => {
+      img.remove()
+      prizeVisual.classList.add('hands-overlay__prize-visual--fallback')
+    })
+    prizeVisual.appendChild(img)
     prizeEl.setAttribute('aria-hidden', 'false')
   }
 
@@ -882,6 +872,9 @@ export function createCandyRummageController(
     prizeVisual.style.opacity = ''
     prizeVisual.style.transform = ''
     prizeVisual.style.backgroundColor = ''
+    prizeVisual.replaceChildren()
+    prizeVisual.classList.remove('hands-overlay__prize-visual--fallback')
+    prize.classList.remove('hands-overlay__prize--circle')
     root.hidden = true
     root.setAttribute('aria-hidden', 'true')
     prize.setAttribute('aria-hidden', 'true')
@@ -954,10 +947,7 @@ export function createCandyRummageController(
       grabTimeline = null
     }
 
-    const prize = getSessionPrize() ?? fallbackPrize()
-    if (!getSessionPrize()) {
-      setSessionPrize(prize)
-    }
+    const prize = ensureSessionPrize()
     applyPrizeToElement(prize)
 
     const { root } = cuppedReveal
@@ -1295,6 +1285,7 @@ export function createCandyRummageController(
       state = 'idle'
       lastMid = null
       clearSessionPrize()
+      clearPendingBowlPrizes()
       leftHand.style.visibility = ''
       rightHand.style.visibility = ''
     },
@@ -1322,10 +1313,12 @@ export function createCandyRummageController(
       clearObjectLayers()
       state = 'idle'
       clearSessionPrize()
+      clearPendingBowlPrizes()
     },
 
     respawnObjects(): void {
       if (!bound) return
+      clearPendingBowlPrizes()
       spawnObjects()
     },
 

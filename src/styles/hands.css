@@ -47,7 +47,7 @@
   --cupped-hands-drop: 45px;
   --cupped-hands-scale: 1;
   --cupped-hands-translate-x: -50%;
-  --prize-width: clamp(2.75rem, 18vw, 4.5rem);
+  --prize-width: clamp(4.125rem, 27vw, 6.75rem);
   --prize-offset-x: 0%;
   --prize-offset-y: -38%;
 
@@ -106,6 +106,23 @@
     opacity 0.3s ease,
     transform 0.3s ease;
   will-change: transform, opacity;
+  background: transparent;
+}
+
+.hands-overlay__prize-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.hands-overlay__prize-visual--fallback {
+  border-radius: 50%;
+  background: #9e9e9e;
 }
 
 .hands-overlay__prize--circle .hands-overlay__prize-visual {
@@ -209,7 +226,7 @@
     --cupped-hands-width: clamp(22rem, 42vw, 36rem);
     --cupped-hands-bottom: clamp(-0.5rem, 2vh, 1.5rem);
     --cupped-hands-scale: 1;
-    --prize-width: clamp(3.5rem, 5.5vw, 5.75rem);
+    --prize-width: clamp(5.25rem, 8.25vw, 8.625rem);
     --prize-offset-y: -36%;
   }
 }

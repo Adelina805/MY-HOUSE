@@ -1,5 +1,5 @@
 /**
- * Tune candy bowl plunge, hand tracking, and placeholder object reactions.
+ * Tune candy bowl plunge, hand tracking, and prize object reactions.
  *
  * Bowl “in bounds” for candies = ellipse `hands.boundary` inside the objects layer
  * (`--candy-objects-width/height` on `#app`). Dev: `?startAt=candy&bowlDebug=1`
@@ -43,17 +43,12 @@ export const candyBowlConfig = {
     },
   },
   objects: {
-    count: 32,
+    /** Show every catalog prize in the bowl (capped by catalog length at spawn). */
+    count: 60,
     /** Fraction of objects drawn in front of the hands (rest stay behind). */
     frontLayerChance: 0.5,
-    sizeMinPx: 40,
-    sizeMaxPx: 72,
-    blueHueMin: 205,
-    blueHueMax: 230,
-    blueSatMin: 45,
-    blueSatMax: 70,
-    blueLightMin: 35,
-    blueLightMax: 65,
+    /** Uniform box size for every prize image (assets are pre-cropped equally). */
+    sizePx: 72,
     /** Push radius as fraction of bowl width. */
     interactionRadius: 0.22,
     pushStrength: 1.15,
