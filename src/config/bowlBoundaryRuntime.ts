@@ -21,12 +21,22 @@ export function isBowlDebugEnabled(): boolean {
   }
 }
 
+const MOBILE_MAX_WIDTH = 480
+
+function defaultBoundaryRadii(): { radiusX: number; radiusY: number } {
+  const isMobile =
+    typeof window !== 'undefined' && window.innerWidth <= MOBILE_MAX_WIDTH
+  return isMobile
+    ? candyBowlConfig.hands.boundaryMobile
+    : candyBowlConfig.hands.boundary
+}
+
 /**
  * Ellipse radii in normalized object-layer space (0–1, center 0.5).
  * Override at runtime with `?bowlRx=0.5&bowlRy=0.48` while debugging.
  */
 export function getBowlBoundaryRadii(): { radiusX: number; radiusY: number } {
-  const defaults = candyBowlConfig.hands.boundary
+  const defaults = defaultBoundaryRadii()
   if (!import.meta.env.DEV) {
     return { radiusX: defaults.radiusX, radiusY: defaults.radiusY }
   }

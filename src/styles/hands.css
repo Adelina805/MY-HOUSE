@@ -37,7 +37,7 @@
 
 .hands-overlay__objects-front {
   z-index: 3;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Cupped hands + prize — visible only during prize reveal (see hands-overlay--prize-reveal). */

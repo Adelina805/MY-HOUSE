@@ -107,18 +107,27 @@ button:focus-visible {
   }
 
   /*
-   * Portrait: height was tied to narrow vw (too short). Width uses the framed
-   * content width so the bowl does not shrink more than the scene.
+   * Portrait: bowl is roughly circular and fills the frame. Size the objects
+   * layer with vw so height matches width (not a short 24svh strip), otherwise
+   * prizes clump in a tight oval with empty colander around them.
    */
   #app {
     --candy-objects-width: min(
       calc(100vw - 2 * var(--frame-thickness)),
       960px
     );
-    --candy-objects-height: min(max(47vw, 24svh), 520px);
+    --candy-objects-height: min(
+      calc(92vw - 2 * var(--frame-thickness)),
+      58svh,
+      520px
+    );
     --candy-objects-center-y: 48%;
     --candy-bowl-hit-width: min(calc(92vw - 2 * var(--frame-thickness)), 920px);
-    --candy-bowl-hit-height: min(max(39vw, 20svh), 480px);
+    --candy-bowl-hit-height: min(
+      calc(78vw - 2 * var(--frame-thickness)),
+      48svh,
+      480px
+    );
   }
 }
 

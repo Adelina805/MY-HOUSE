@@ -41,6 +41,11 @@ export const candyBowlConfig = {
       radiusX: 0.48,
       radiusY: 0.39,
     },
+    /** Portrait: wider ellipse so the pile fills the circular colander. */
+    boundaryMobile: {
+      radiusX: 0.52,
+      radiusY: 0.46,
+    },
   },
   objects: {
     /** Show every catalog prize in the bowl (capped by catalog length at spawn). */
@@ -49,6 +54,12 @@ export const candyBowlConfig = {
     frontLayerChance: 0.5,
     /** Uniform box size for every prize image (assets are pre-cropped equally). */
     sizePx: 72,
+    /**
+     * Desktop objects-layer caps (`--candy-objects-width/height` maxes).
+     * Clamp margins use these so small screens keep the same normalized spawn spread.
+     */
+    clampMarginRefWidth: 960,
+    clampMarginRefHeight: 520,
     /** Push radius as fraction of bowl width. */
     interactionRadius: 0.22,
     pushStrength: 1.15,

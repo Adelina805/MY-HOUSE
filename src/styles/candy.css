@@ -51,7 +51,7 @@
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .candy__object {

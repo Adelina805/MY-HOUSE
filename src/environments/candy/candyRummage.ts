@@ -151,12 +151,12 @@ function clampObjectInBowl(
   x: number,
   y: number,
   sizePx: number,
-  rootWidth: number,
-  rootHeight: number,
 ): { x: number; y: number } {
   const { radiusX, radiusY } = getBowlBoundaryRadii()
-  const marginX = sizePx / 2 / rootWidth
-  const marginY = sizePx / 2 / rootHeight
+  // Use desktop objects-layer caps so mobile keeps the same normalized spread
+  // (live root size would inflate the margin and pull prizes toward center).
+  const marginX = sizePx / 2 / config.objects.clampMarginRefWidth
+  const marginY = sizePx / 2 / config.objects.clampMarginRefHeight
   return clampNormalizedToEllipse(
     x,
     y,
@@ -698,13 +698,7 @@ export function createCandyRummageController(
       obj.x += (nx * push) / rootRect.width
       obj.y += (ny * push) / rootRect.height
 
-      const clamped = clampObjectInBowl(
-        obj.x,
-        obj.y,
-        obj.size,
-        rootRect.width,
-        rootRect.height,
-      )
+      const clamped = clampObjectInBowl(obj.x, obj.y, obj.size)
       obj.x = clamped.x
       obj.y = clamped.y
 
@@ -775,13 +769,15 @@ export function createCandyRummageController(
       el.appendChild(img)
 
       const angle = Math.random() * Math.PI * 2
-      const r = 0.1 + Math.random() * 0.38
+      const mobile = window.innerWidth <= 480
+      // Mobile: area-uniform + wider reach. Desktop: original polar scatter.
+      const r = mobile
+        ? 0.14 + Math.sqrt(Math.random()) * 0.46
+        : 0.1 + Math.random() * 0.38
       const placed = clampObjectInBowl(
         0.5 + Math.cos(angle) * r,
-        0.5 + Math.sin(angle) * r * 0.9,
+        0.5 + Math.sin(angle) * r * (mobile ? 0.92 : 0.9),
         size,
-        layoutRect.width,
-        layoutRect.height,
       )
 
       root.appendChild(el)
@@ -1041,13 +1037,7 @@ export function createCandyRummageController(
       const ny = dy / dist
       obj.x += (nx * push)
       obj.y += (ny * push * 0.9)
-      const clamped = clampObjectInBowl(
-        obj.x,
-        obj.y,
-        obj.size,
-        rootRect.width,
-        rootRect.height,
-      )
+      const clamped = clampObjectInBowl(obj.x, obj.y, obj.size)
       obj.x = clamped.x
       obj.y = clamped.y
       const tx = obj.x * rootRect.width
