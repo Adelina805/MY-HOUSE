@@ -47,7 +47,8 @@
   --cupped-hands-drop: 45px;
   --cupped-hands-scale: 1;
   --cupped-hands-translate-x: -50%;
-  --prize-width: clamp(4.125rem, 27vw, 6.75rem);
+  /* Fraction of cupped-hands width so the prize shrinks with hands on mobile. */
+  --prize-width: 34%;
   --prize-offset-x: 0%;
   --prize-offset-y: -38%;
 
@@ -226,7 +227,6 @@
     --cupped-hands-width: clamp(22rem, 42vw, 36rem);
     --cupped-hands-bottom: clamp(-0.5rem, 2vh, 1.5rem);
     --cupped-hands-scale: 1;
-    --prize-width: clamp(5.25rem, 8.25vw, 8.625rem);
     --prize-offset-y: -36%;
   }
 }
