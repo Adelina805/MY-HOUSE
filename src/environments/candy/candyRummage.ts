@@ -752,7 +752,8 @@ export function createCandyRummageController(
       el.className = 'candy__object'
       el.setAttribute('data-prize-id', def.id)
 
-      const size = cfg.sizePx
+      const size =
+        window.innerWidth <= 480 ? cfg.sizePx : cfg.sizePxDesktop
       el.style.width = `${size}px`
       el.style.height = `${size}px`
 

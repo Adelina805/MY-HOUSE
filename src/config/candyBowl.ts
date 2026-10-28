@@ -54,6 +54,8 @@ export const candyBowlConfig = {
     frontLayerChance: 0.5,
     /** Uniform box size for every prize image (assets are pre-cropped equally). */
     sizePx: 72,
+    /** Desktop bowl pile only; mobile keeps sizePx. Hand reveal sizing is separate (CSS). */
+    sizePxDesktop: 100,
     /**
      * Desktop objects-layer caps (`--candy-objects-width/height` maxes).
      * Clamp margins use these so small screens keep the same normalized spawn spread.
