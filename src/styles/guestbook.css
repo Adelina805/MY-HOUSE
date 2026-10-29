@@ -137,8 +137,8 @@
   --guestbook-content-inset-right: 20%;
   --guestbook-content-inset-top: 12%;
   --guestbook-content-inset-bottom: 8%;
-  --guestbook-close-top: 7%;
-  --guestbook-close-right: 15%;
+  --guestbook-close-top: 5.8%;
+  --guestbook-close-right: 14.4%;
   position: absolute;
   inset: 0;
   z-index: 15;
@@ -199,8 +199,8 @@
 
 .guestbook-overlay__close {
   position: absolute;
-  top: calc(var(--guestbook-close-top) - 10px);
-  right: calc(var(--guestbook-close-right) - 5px);
+  top: var(--guestbook-close-top);
+  right: var(--guestbook-close-right);
   z-index: 3;
   width: 2.25rem;
   height: 2.25rem;
@@ -415,8 +415,8 @@
     --guestbook-content-inset-left: 25%;
     --guestbook-content-inset-right: 20%;
     --guestbook-content-inset-top: 11.5%;
-    --guestbook-close-top: 7%;
-    --guestbook-close-right: 16%;
+    --guestbook-close-top: 5.8%;
+    --guestbook-close-right: 14.4%;
     /* Keep the page off the top edge; sides stay 0 so the zoom can bleed. */
     padding: max(10px, env(safe-area-inset-top, 0px)) 0
       max(1vh, env(safe-area-inset-bottom, 0px));
