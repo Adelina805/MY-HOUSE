@@ -199,8 +199,8 @@
 
 .guestbook-overlay__close {
   position: absolute;
-  top: var(--guestbook-close-top);
-  right: var(--guestbook-close-right);
+  top: calc(var(--guestbook-close-top) - 10px);
+  right: calc(var(--guestbook-close-right) - 5px);
   z-index: 3;
   width: 2.25rem;
   height: 2.25rem;
@@ -243,12 +243,13 @@
 
 .guestbook-overlay__header {
   flex: 0 0 auto;
-  padding: 0 2rem 0 0;
+  width: 100%;
   min-width: 0;
 }
 
 .guestbook-overlay__title {
   margin: 0;
+  padding-right: 2rem;
   font-family: 'Some Time Later', 'Segoe Print', 'Comic Sans MS', system-ui,
     sans-serif;
   font-size: clamp(1.2rem, 2.8vw, 1.75rem);
@@ -259,6 +260,7 @@
 
 .guestbook-overlay__subtitle {
   margin: 0.35rem 0 0.65rem;
+  padding-right: 2rem;
   font-family: 'Some Time Later', 'Segoe Print', 'Comic Sans MS', system-ui,
     sans-serif;
   font-size: clamp(0.8rem, 1.6vw, 1rem);
@@ -272,8 +274,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
+  width: 100%;
   margin: 0;
   padding: 0.55rem 0 0.6rem;
+  box-sizing: border-box;
   border-top: 1px solid #1a1a1a;
   border-bottom: 1px solid #1a1a1a;
 }
