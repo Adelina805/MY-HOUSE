@@ -126,15 +126,15 @@
 
 /* Expanded overlay — above hands (8), below controls (20) */
 .guestbook-overlay {
-  --guestbook-paper-width: min(58vw, 640px, 92dvh);
+  --guestbook-paper-width: min(78vw, 820px, 92dvh);
   --guestbook-dim-opacity: 0.45;
   /*
    * Printable insets measured from paper.png (1000×1000):
    * pink margin ≈ 24.4%; white sheet ≈ 13–87% horizontally.
    * Left starts just past the pink rule; close sits on the page face.
    */
-  --guestbook-content-inset-left: 26%;
-  --guestbook-content-inset-right: 14%;
+  --guestbook-content-inset-left: 25%;
+  --guestbook-content-inset-right: 20%;
   --guestbook-content-inset-top: 12%;
   --guestbook-content-inset-bottom: 8%;
   --guestbook-close-top: 7%;
@@ -411,18 +411,18 @@
   }
 
   .guestbook-overlay {
-    --guestbook-paper-width: min(100vw, 96dvh);
-    --guestbook-content-inset-left: 26%;
-    --guestbook-content-inset-right: 14%;
+    --guestbook-paper-width: min(100vw, 100dvh);
+    --guestbook-content-inset-left: 25%;
+    --guestbook-content-inset-right: 20%;
     --guestbook-content-inset-top: 11.5%;
     --guestbook-close-top: 6.5%;
     --guestbook-close-right: 14.5%;
-    padding: max(1vh, env(safe-area-inset-top, 0px)) 0
-      max(1vh, env(safe-area-inset-bottom, 0px));
+    padding: max(0.5vh, env(safe-area-inset-top, 0px)) 0
+      max(0.5vh, env(safe-area-inset-bottom, 0px));
   }
 
   .guestbook-overlay__paper {
-    max-height: 96dvh;
+    max-height: 100dvh;
     margin-top: 0;
   }
 
