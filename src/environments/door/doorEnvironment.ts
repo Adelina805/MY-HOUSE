@@ -32,7 +32,8 @@ export interface DoorEnvironment {
   getViewportElement(): HTMLElement | null
   setRestartInteractive(interactive: boolean): void
   resetSceneTransform(): void
-  prepareForGoodbye(): void
+  /** Paint goodbye frame 0 under opacity 0 before the candy→door crossfade. */
+  prepareForGoodbye(): Promise<void>
   clearGreetingHold(): void
   skipActiveVideo(): void
   bindMediaControls(handlers: {
@@ -325,8 +326,8 @@ export function createDoorEnvironment(): DoorEnvironment {
       scene.style.opacity = ''
     },
 
-    prepareForGoodbye(): void {
-      media?.showClosed()
+    prepareForGoodbye(): Promise<void> {
+      return media?.prepareForGoodbye() ?? Promise.resolve()
     },
 
     clearGreetingHold(): void {

@@ -219,6 +219,26 @@ export class DoorMediaController {
     this.setMode('closed')
   }
 
+  /**
+   * Arm goodbye on frame 0 and switch media mode before the door fades in,
+   * so the candy→door crossfade never flashes the closed-door still.
+   */
+  async prepareForGoodbye(): Promise<void> {
+    const src = assets.door.goodbyeVideo
+    if (!src) {
+      this.showClosed()
+      return
+    }
+
+    this.greetingVideo.pause()
+    this.ensureGoodbyeSource(src)
+
+    const video = this.goodbyeVideo
+    video.pause()
+    this.setMode('goodbye')
+    await this.waitForStartFrame(video, src)
+  }
+
   holdGreetingEndFrame(): void {
     this.greetingVideo.pause()
     this.setMode('greeting-hold')

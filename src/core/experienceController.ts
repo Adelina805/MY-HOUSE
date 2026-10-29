@@ -580,11 +580,12 @@ export class ExperienceController {
     const inDuration = duration * 0.52
 
     this.door.setHidden(false)
-    this.door.prepareForGoodbye()
+    // Keep door invisible until goodbye frame 0 is painted (avoids closed-door flash).
     gsap.set(doorScene, { opacity: 0 })
     if (candyScene) {
       gsap.set(candyScene, { opacity: 1 })
     }
+    await this.door.prepareForGoodbye()
 
     await gsap
       .timeline({ defaults: { ease: transitions.ease } })
