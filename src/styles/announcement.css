@@ -1,6 +1,7 @@
 /* --------------------------------------------------------------------------
-   Prize announcement overlay — sits inside .hands-overlay, below cupped hands.
-   Tune burst size/position via candyBowlConfig.announcement or CSS vars below.
+   Prize announcement overlay — wash + text inside .hands-overlay.
+   Burst mounts inside .hands-overlay__cupped-reveal so it tracks the hands.
+   Tune burst size via candyBowlConfig.announcement.burstSize.
    -------------------------------------------------------------------------- */
 .prize-announcement {
   --prize-announce-label-size: clamp(0.7rem, 2.1vw, 0.95rem);
@@ -30,17 +31,20 @@
   pointer-events: none;
 }
 
+/* Centered on cupped-hands box (host sets position context).
+   z-index -1 keeps the burst behind in-flow hands inside this stacking context. */
 .prize-announcement__burst-wrap {
-  --prize-burst-size: clamp(26rem, 118vmin, 56rem);
-  --prize-burst-center-y: 68%;
+  --prize-burst-size: 220%;
+  /* Upward nudge relative to cupped-hands box height. */
+  --prize-burst-offset-y: -10%;
 
   position: absolute;
   left: 50%;
-  top: var(--prize-burst-center-y);
-  z-index: 1;
+  top: 50%;
+  z-index: -1;
   width: var(--prize-burst-size);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-50% + var(--prize-burst-offset-y)));
   pointer-events: none;
   will-change: transform;
 }
@@ -160,13 +164,6 @@
     margin-block: var(--prize-announce-gap);
     /* Display face leaves extra empty space under capitals; trim bottom so gaps look even. */
     margin-bottom: calc(var(--prize-announce-gap) - 0.35em);
-  }
-
-  .prize-announcement__burst-wrap {
-    --prize-burst-size: clamp(22rem, 135vmin, 42rem);
-    --prize-burst-center-y: 72%;
-    /* Nudge burst down so its center sits behind the cupped prize on portrait. */
-    transform: translate(-50%, calc(-50% + 70px));
   }
 }
 

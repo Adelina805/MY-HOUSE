@@ -60,6 +60,7 @@
     scale(var(--cupped-hands-scale));
   transform-origin: 50% 100%;
   z-index: 4;
+  overflow: visible;
   pointer-events: none;
   user-select: none;
 }

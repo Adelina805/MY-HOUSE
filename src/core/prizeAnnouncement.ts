@@ -12,6 +12,11 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+export interface PrizeAnnouncementOptions {
+  /** Cupped-hands root — burst mounts here so it tracks hands across viewports. */
+  burstHost: HTMLElement
+}
+
 export interface PrizeAnnouncement {
   element: HTMLElement
   /** Play the announcement for the locked session prize; resolves once when done. */
@@ -21,7 +26,9 @@ export interface PrizeAnnouncement {
   destroy(): void
 }
 
-export function createPrizeAnnouncement(): PrizeAnnouncement {
+export function createPrizeAnnouncement(
+  options: PrizeAnnouncementOptions,
+): PrizeAnnouncement {
   const root = document.createElement('div')
   root.className = 'prize-announcement'
   root.hidden = true
@@ -35,7 +42,6 @@ export function createPrizeAnnouncement(): PrizeAnnouncement {
   burstWrap.className = 'prize-announcement__burst-wrap'
   burstWrap.setAttribute('aria-hidden', 'true')
   burstWrap.style.setProperty('--prize-burst-size', cfg.burstSize)
-  burstWrap.style.setProperty('--prize-burst-center-y', cfg.burstCenterY)
 
   const burst = document.createElement('img')
   burst.className = 'prize-announcement__burst'
@@ -44,6 +50,8 @@ export function createPrizeAnnouncement(): PrizeAnnouncement {
   burst.draggable = false
   burst.decoding = 'async'
   burstWrap.appendChild(burst)
+  // Behind cupped hands image + prize inside the shared positioning box.
+  options.burstHost.prepend(burstWrap)
 
   const text = document.createElement('div')
   text.className = 'prize-announcement__text'
@@ -73,7 +81,7 @@ export function createPrizeAnnouncement(): PrizeAnnouncement {
   live.setAttribute('aria-live', 'polite')
   live.setAttribute('aria-atomic', 'true')
 
-  root.append(wash, burstWrap, text, live)
+  root.append(wash, text, live)
 
   let timeline: gsap.core.Timeline | null = null
   let rotationTween: gsap.core.Tween | null = null
@@ -243,6 +251,7 @@ export function createPrizeAnnouncement(): PrizeAnnouncement {
 
   function destroy(): void {
     reset()
+    burstWrap.remove()
     root.remove()
   }
 

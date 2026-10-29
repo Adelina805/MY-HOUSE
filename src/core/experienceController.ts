@@ -102,9 +102,12 @@ export class ExperienceController {
     this.hands = hands
     this.host.appendChild(hands.element)
 
-    const prizeAnnouncement = createPrizeAnnouncement()
+    const prizeAnnouncement = createPrizeAnnouncement({
+      burstHost: hands.cuppedReveal.root,
+    })
     this.prizeAnnouncement = prizeAnnouncement
-    // Inside hands overlay, below cupped hands / front objects (CSS z-index).
+    // Wash + text inside hands overlay, below cupped hands / front objects.
+    // Burst mounts inside cupped reveal so it stays centered behind the hands.
     hands.element.insertBefore(
       prizeAnnouncement.element,
       hands.objectsFrontRoot,

@@ -100,10 +100,11 @@ export const candyBowlConfig = {
     burstFadeInSec: 0.35,
     /** Continuous burst spin; ignored when prefers-reduced-motion. */
     burstRotationSec: 12,
-    /** Burst square size (CSS length). */
-    burstSize: 'clamp(26rem, 118vmin, 56rem)',
-    /** Vertical center of burst as % of overlay height (behind cupped prize). */
-    burstCenterY: '68%',
+    /**
+     * Burst square size relative to cupped-hands width (mounted inside
+     * `.hands-overlay__cupped-reveal`, so % tracks the hands).
+     */
+    burstSize: '220%',
     label: { startSec: 0.2, durationSec: 0.4 },
     name: { startSec: 0.35, durationSec: 0.45, scaleFrom: 0.92 },
     from: { startSec: 0.5, durationSec: 0.4 },
