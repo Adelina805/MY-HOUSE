@@ -17,6 +17,15 @@ import { createSplashScreen, playSplashIntro } from './core/splashScreen'
 
 inject()
 
+// iOS Safari often ignores touch-action for double-tap zoom; block dblclick.
+document.addEventListener(
+  'dblclick',
+  (event) => {
+    event.preventDefault()
+  },
+  { passive: false },
+)
+
 const mount = document.querySelector<HTMLDivElement>('#app')
 if (!mount) {
   throw new Error('#app mount point not found')
