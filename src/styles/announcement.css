@@ -149,6 +149,8 @@
   .prize-announcement__burst-wrap {
     --prize-burst-size: clamp(22rem, 135vmin, 42rem);
     --prize-burst-center-y: 72%;
+    /* Nudge burst down so its center sits behind the cupped prize on portrait. */
+    transform: translate(-50%, calc(-50% + 70px));
   }
 }
 
