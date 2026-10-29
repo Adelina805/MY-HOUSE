@@ -411,18 +411,25 @@
   }
 
   .guestbook-overlay {
-    --guestbook-paper-width: min(100vw, 100dvh);
+    --guestbook-paper-width: min(122vw, 112dvh);
     --guestbook-content-inset-left: 25%;
     --guestbook-content-inset-right: 20%;
     --guestbook-content-inset-top: 11.5%;
-    --guestbook-close-top: 6.5%;
-    --guestbook-close-right: 14.5%;
-    padding: max(0.5vh, env(safe-area-inset-top, 0px)) 0
-      max(0.5vh, env(safe-area-inset-bottom, 0px));
+    --guestbook-close-top: 7%;
+    --guestbook-close-right: 16%;
+    /* Keep the page off the top edge; sides stay 0 so the zoom can bleed. */
+    padding: max(10px, env(safe-area-inset-top, 0px)) 0
+      max(1vh, env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
   }
 
   .guestbook-overlay__paper {
-    max-height: 100dvh;
+    /* Flex defaults to shrink:1, which canceled the >100vw width. */
+    flex-shrink: 0;
+    width: var(--guestbook-paper-width);
+    min-width: var(--guestbook-paper-width);
+    max-width: none;
+    max-height: none;
     margin-top: 0;
   }
 
