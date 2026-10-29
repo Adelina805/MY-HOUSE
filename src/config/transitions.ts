@@ -7,4 +7,14 @@ export const transitions = {
   candyAutoGoodbyeDelayMs: 7000,
   /** After goodbye video ends, return cupped hands to idle pose if the visitor has not tapped. */
   cuppedDismissAfterGoodbyeMs: 3000,
+  /** Delay after door closes before the guestbook note fades in. */
+  guestbookNoteAppearDelayMs: 350,
+  /** Closed-note settle / fade-in duration (seconds). */
+  guestbookNoteAppearDuration: 0.35,
+  /** Small note → expanded paper open duration (seconds). */
+  guestbookOpenDuration: 0.55,
+  /** Expanded paper → small note close duration (seconds). */
+  guestbookCloseDuration: 0.5,
+  /** Dim overlay opacity while guestbook is open. */
+  guestbookDimOpacity: 0.45,
 } as const

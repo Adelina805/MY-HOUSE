@@ -30,6 +30,10 @@ import {
   createPrizeAnnouncement,
   type PrizeAnnouncement,
 } from './prizeAnnouncement'
+import {
+  createGuestbookController,
+  type GuestbookController,
+} from './guestbookController'
 import { getSessionPrize } from '../config/prizeCatalog'
 import type { ExperienceState } from './types'
 import type { KnockPoint } from '../environments/door/doorEnvironment'
@@ -58,6 +62,7 @@ export class ExperienceController {
   private candyRummage: CandyRummageController | null = null
   private prizeAnnouncement: PrizeAnnouncement | null = null
   private prizeAnnouncementPromise: Promise<void> | null = null
+  private guestbook: GuestbookController | null = null
   private cuppedDismissPointerHandler: ((event: PointerEvent) => void) | null =
     null
   private cuppedAutoDismissTimer: ReturnType<typeof setTimeout> | null = null
@@ -66,6 +71,7 @@ export class ExperienceController {
     this.host = host
     this.door = createDoorEnvironment()
     this.candy = createCandyEnvironment()
+    this.guestbook = createGuestbookController()
   }
 
   start(): void {
@@ -136,6 +142,17 @@ export class ExperienceController {
 
     this.door.mount(camera)
     this.candy.mount(camera)
+
+    const doorViewport = this.door.getViewportElement()
+    if (doorViewport) {
+      this.guestbook?.mount({
+        appRoot: this.host,
+        doorViewport,
+        onOpenChange: (open) => {
+          this.door.setRestartInteractive(!open)
+        },
+      })
+    }
 
     this.door.bindKnockHandler((point) => {
       this.handleKnock(point)
@@ -366,6 +383,7 @@ export class ExperienceController {
 
     this.state = 'greeting'
     this.door.setKnockEnabled(true)
+    this.guestbook?.reset()
     this.prepareCandyPrizeAssets()
     await this.door.playGreeting()
 
@@ -455,6 +473,7 @@ export class ExperienceController {
 
     this.state = 'finished'
     this.door.applyFinishedState()
+    this.guestbook?.showClosedNote()
     this.beginCuppedDismissPhase()
     this.busy = false
   }
@@ -470,6 +489,8 @@ export class ExperienceController {
 
     gsap.set(this.camera, { y: 0 })
     this.door.setHidden(false)
+    // Keep the guestbook note on the door until greeting/intro video starts.
+    this.guestbook?.closeExpanded()
     this.prizeAnnouncement?.reset()
     this.prizeAnnouncementPromise = null
     this.candyRummage?.reset()

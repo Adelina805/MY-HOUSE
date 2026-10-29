@@ -20,6 +20,8 @@ export const assets = {
     goodbyeVideo: '/media/doorstep/goodbye.mp4',
     greetingCaptions: '/captions/hello.vtt',
     goodbyeCaptions: '/captions/goodbye.vtt',
+    /** Lined notebook paper (torn edge + tape) for the guestbook note. */
+    paperImage: '/media/doorstep/paper.png',
   },
   candy: {
     image: '/media/candy/bowl.png',
@@ -35,6 +37,8 @@ export const assets = {
   audio: {
     /** Knock sound. Empty = silent knock animation only. */
     knock: '/media/doorstep/knock.mov',
+    /** Paper swish when opening/closing the guestbook. Empty = silent. */
+    paper: '/media/doorstep/paper.wav',
   },
   effects: {
     /** White radial burst behind cupped hands during prize announcement. */

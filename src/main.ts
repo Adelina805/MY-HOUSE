@@ -5,6 +5,7 @@ import './styles/splash.css'
 import './styles/hands.css'
 import './styles/announcement.css'
 import './styles/controls.css'
+import './styles/guestbook.css'
 
 import { inject } from '@vercel/analytics'
 

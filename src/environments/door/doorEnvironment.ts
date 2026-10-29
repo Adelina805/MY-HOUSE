@@ -29,6 +29,8 @@ export interface DoorEnvironment {
   bindRestartHandler(handler: () => void): void
   setKnockEnabled(enabled: boolean): void
   getSceneElement(): HTMLElement | null
+  getViewportElement(): HTMLElement | null
+  setRestartInteractive(interactive: boolean): void
   resetSceneTransform(): void
   prepareForGoodbye(): void
   clearGreetingHold(): void
@@ -77,6 +79,7 @@ function knockPointFromEvent(
 export function createDoorEnvironment(): DoorEnvironment {
   let root: HTMLElement | null = null
   let scene: HTMLElement | null = null
+  let viewportEl: HTMLElement | null = null
   let mediaRoot: HTMLElement | null = null
   let perspective: PerspectiveController | null = null
   let media: DoorMediaController | null = null
@@ -172,6 +175,7 @@ export function createDoorEnvironment(): DoorEnvironment {
 
       root = env
       scene = sceneEl
+      viewportEl = viewport
       mediaRoot = mediaEl
       knockTarget = knockBtn
       restartBtn = restart
@@ -206,6 +210,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       knockTarget = null
       restartBtn = null
       mediaRoot = null
+      viewportEl = null
       for (const unregister of knockAudioUnregister) {
         unregister()
       }
@@ -279,6 +284,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       media?.showClosed()
       knockTarget.disabled = false
       restartBtn.hidden = true
+      this.setRestartInteractive(true)
       this.setPerspectiveEnabled(true)
       this.resetSceneTransform()
       this.clearGreetingHold()
@@ -300,6 +306,16 @@ export function createDoorEnvironment(): DoorEnvironment {
 
     getSceneElement(): HTMLElement | null {
       return scene
+    },
+
+    getViewportElement(): HTMLElement | null {
+      return viewportEl
+    },
+
+    setRestartInteractive(interactive: boolean): void {
+      if (!restartBtn) return
+      restartBtn.style.pointerEvents = interactive ? '' : 'none'
+      restartBtn.tabIndex = interactive ? 0 : -1
     },
 
     resetSceneTransform(): void {
