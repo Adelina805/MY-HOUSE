@@ -84,7 +84,30 @@ export const candyBowlConfig = {
     prizePopScale: 1.08,
     grabEase: 'power2.inOut',
     prizePopEase: 'power2.out',
-    /** Pause on the candy scene with cupped hands before crossfading to goodbye. */
-    holdBeforeGoodbyeMs: 700,
+  },
+  /**
+   * Animated prize announcement over the candy bowl (after cupped reveal).
+   * Tune durations here — experienceController drives the sequence from these values.
+   */
+  announcement: {
+    /**
+     * Total time from announcement start until fade-out completes.
+     * No click/tap skip — always waits this full duration.
+     */
+    totalDurationSec: 4,
+    /** White wash + burst fade-in length (starts at 0). */
+    washFadeInSec: 0.35,
+    burstFadeInSec: 0.35,
+    /** Continuous burst spin; ignored when prefers-reduced-motion. */
+    burstRotationSec: 12,
+    /** Burst square size (CSS length). */
+    burstSize: 'clamp(26rem, 118vmin, 56rem)',
+    /** Vertical center of burst as % of overlay height (behind cupped prize). */
+    burstCenterY: '68%',
+    label: { startSec: 0.2, durationSec: 0.4 },
+    name: { startSec: 0.35, durationSec: 0.45, scaleFrom: 0.92 },
+    from: { startSec: 0.5, durationSec: 0.4 },
+    /** Fade-out length; starts at (totalDurationSec - fadeOutDurationSec). */
+    fadeOutDurationSec: 0.5,
   },
 } as const

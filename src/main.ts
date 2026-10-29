@@ -3,6 +3,7 @@ import './styles/door.css'
 import './styles/candy.css'
 import './styles/splash.css'
 import './styles/hands.css'
+import './styles/announcement.css'
 import './styles/controls.css'
 
 import { inject } from '@vercel/analytics'

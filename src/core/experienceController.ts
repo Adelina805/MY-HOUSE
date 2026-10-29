@@ -26,6 +26,11 @@ import {
 } from './handsKnockAnimation'
 import { registerCandyRespawn } from './candyBowlDebug'
 import { createHandsOverlay, type HandsOverlay } from './handsOverlay'
+import {
+  createPrizeAnnouncement,
+  type PrizeAnnouncement,
+} from './prizeAnnouncement'
+import { getSessionPrize } from '../config/prizeCatalog'
 import type { ExperienceState } from './types'
 import type { KnockPoint } from '../environments/door/doorEnvironment'
 
@@ -46,12 +51,13 @@ export class ExperienceController {
   private knockController: RightHandKnockController | null = null
   private greetingInactivityTimer: ReturnType<typeof setTimeout> | null = null
   private candyAutoGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
-  private revealGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
   private greetingTransitionStarted = false
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
   private controls: AccessibilityControls | null = null
   private candyRummage: CandyRummageController | null = null
+  private prizeAnnouncement: PrizeAnnouncement | null = null
+  private prizeAnnouncementPromise: Promise<void> | null = null
   private cuppedDismissPointerHandler: ((event: PointerEvent) => void) | null =
     null
   private cuppedAutoDismissTimer: ReturnType<typeof setTimeout> | null = null
@@ -89,6 +95,14 @@ export class ExperienceController {
     const hands = createHandsOverlay()
     this.hands = hands
     this.host.appendChild(hands.element)
+
+    const prizeAnnouncement = createPrizeAnnouncement()
+    this.prizeAnnouncement = prizeAnnouncement
+    // Inside hands overlay, below cupped hands / front objects (CSS z-index).
+    hands.element.insertBefore(
+      prizeAnnouncement.element,
+      hands.objectsFrontRoot,
+    )
 
     const knockStatus = document.createElement('div')
     knockStatus.className = 'door__sr-only'
@@ -168,9 +182,9 @@ export class ExperienceController {
       onPlungeStart: () => {
         this.clearCandyAutoGoodbyeTimer()
       },
-      onPrizeRevealed: () => {
+      onPrizeRevealed: (prize) => {
         this.clearCandyAutoGoodbyeTimer()
-        this.scheduleGoodbyeAfterReveal()
+        void this.playPrizeAnnouncementThenGoodbye(prize)
       },
     })
     registerCandyRespawn(() => {
@@ -212,7 +226,10 @@ export class ExperienceController {
   /** Pick bowl décor prizes and decode their WebPs during greeting (not on boot). */
   private prepareCandyPrizeAssets(): void {
     const bowlPrizes = prepareBowlPrizeSubset(candyBowlConfig.objects.count)
-    void preloadPrizeImages(bowlPrizes.map((prize) => prize.image))
+    void preloadPrizeImages([
+      ...bowlPrizes.map((prize) => prize.image),
+      assets.effects.feature,
+    ])
   }
 
   /** Idle fallback if the visitor never grabs a prize (after candy is actually visible). */
@@ -227,9 +244,11 @@ export class ExperienceController {
     gsap.killTweensOf(this.camera)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
-    this.clearRevealGoodbyeTimer()
     this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
+    this.prizeAnnouncement?.destroy()
+    this.prizeAnnouncement = null
+    this.prizeAnnouncementPromise = null
     this.knockController?.dispose()
     this.knockController = null
     const doorScene = this.door.getSceneElement()
@@ -266,20 +285,37 @@ export class ExperienceController {
     }
   }
 
-  private clearRevealGoodbyeTimer(): void {
-    if (this.revealGoodbyeTimer !== null) {
-      clearTimeout(this.revealGoodbyeTimer)
-      this.revealGoodbyeTimer = null
+  /**
+   * Cupped hands + prize are already visible. Play the announcement overlay,
+   * then run the existing return-to-door / goodbye path exactly once.
+   */
+  private async playPrizeAnnouncementThenGoodbye(
+    prize = getSessionPrize(),
+  ): Promise<void> {
+    if (this.prizeAnnouncementPromise) {
+      await this.prizeAnnouncementPromise
+      return
     }
-  }
 
-  private scheduleGoodbyeAfterReveal(): void {
-    this.clearRevealGoodbyeTimer()
-    const delayMs = candyBowlConfig.reveal.holdBeforeGoodbyeMs
-    this.revealGoodbyeTimer = setTimeout(() => {
-      this.revealGoodbyeTimer = null
+    this.candy.setInteractive(false)
+
+    const locked = prize ?? getSessionPrize()
+    if (!locked || !this.prizeAnnouncement) {
       void this.leaveCandyForGoodbye()
-    }, delayMs)
+      return
+    }
+
+    const run = (async () => {
+      try {
+        await this.prizeAnnouncement?.play(locked)
+        await this.leaveCandyForGoodbye()
+      } finally {
+        this.prizeAnnouncementPromise = null
+      }
+    })()
+
+    this.prizeAnnouncementPromise = run
+    await run
   }
 
   private scheduleCandyAutoGoodbye(): void {
@@ -401,6 +437,8 @@ export class ExperienceController {
 
     this.busy = true
     this.candy.setInteractive(false)
+    // Announcement must never carry into the doorway / goodbye video.
+    this.prizeAnnouncement?.reset()
 
     await this.animateTransitionToDoor()
 
@@ -424,6 +462,8 @@ export class ExperienceController {
 
     gsap.set(this.camera, { y: 0 })
     this.door.setHidden(false)
+    this.prizeAnnouncement?.reset()
+    this.prizeAnnouncementPromise = null
     this.candyRummage?.reset()
     this.candy.setHidden(true)
     this.candy.reset()
@@ -431,7 +471,6 @@ export class ExperienceController {
     this.door.setKnockEnabled(true)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
-    this.clearRevealGoodbyeTimer()
     this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
     this.greetingTransitionStarted = false

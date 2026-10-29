@@ -42,17 +42,61 @@ function shuffleInPlace<T>(items: T[]): T[] {
   return items
 }
 
+const LEADING_ARTICLE = /^(a|an)\s+/i
+
+/** Grammar for "a" / "an"; empty when the adjective already includes an article. */
+export function articleForAdjective(adjective: string): 'a' | 'an' | '' {
+  const trimmed = adjective.trim()
+  if (!trimmed || LEADING_ARTICLE.test(trimmed)) return ''
+  const firstLetter = trimmed.replace(/^[^a-zA-Z]+/, '').charAt(0)
+  if (!firstLetter) return 'a'
+  return /^[aeiou]$/i.test(firstLetter) ? 'an' : 'a'
+}
+
+/** Adjective without a leading a/an (avoids "A A shiny …"). */
+export function stripLeadingArticle(adjective: string): string {
+  return adjective.trim().replace(LEADING_ARTICLE, '').trim()
+}
+
+export interface PrizeAnnouncementCopy {
+  /** Uppercase lead line, e.g. "A SHINY" or "AN OPTIMISTIC". */
+  leadUpper: string
+  /** Uppercase object name line. */
+  objectUpper: string
+  /** Sentence-case location line, e.g. "from Pacific Beach". */
+  fromLine: string
+  /** Full phrase for aria-live / alt text. */
+  spoken: string
+}
+
+export function formatPrizeAnnouncement(
+  prize: SelectedPrize,
+): PrizeAnnouncementCopy {
+  const article = articleForAdjective(prize.adjective)
+  const adjective = stripLeadingArticle(prize.adjective) || prize.adjective
+  const lead = article ? `${article} ${adjective}` : adjective
+  const spokenLead = lead.charAt(0).toUpperCase() + lead.slice(1)
+  return {
+    leadUpper: lead.toUpperCase(),
+    objectUpper: prize.objectName.toUpperCase(),
+    fromLine: `from ${prize.location}`,
+    spoken: `${spokenLead} ${prize.objectName} from ${prize.location}`,
+  }
+}
+
 function buildSelectedPrize(def: PrizeDefinition): SelectedPrize {
   const adjective = pickOne(def.adjectives) ?? 'curious'
   const location = pickOne(def.locations) ?? 'San Diego'
-  return {
+  const draft: SelectedPrize = {
     id: def.id,
     objectName: def.name,
     adjective,
     location,
-    fullName: `A ${adjective} ${def.name} from ${location}`,
+    fullName: '',
     imagePath: def.image,
   }
+  draft.fullName = formatPrizeAnnouncement(draft).spoken
+  return draft
 }
 
 export function getAllPrizes(): readonly PrizeDefinition[] {

@@ -36,4 +36,8 @@ export const assets = {
     /** Knock sound. Empty = silent knock animation only. */
     knock: '/media/doorstep/knock.mov',
   },
+  effects: {
+    /** White radial burst behind cupped hands during prize announcement. */
+    feature: '/media/effects/feature.png',
+  },
 } as const
