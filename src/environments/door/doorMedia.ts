@@ -1,9 +1,14 @@
 import { assets } from '../../config/assets'
-import { registerMediaElement, restoreMediaMute } from '../../core/soundState'
+import {
+  isSoundMuted,
+  registerMediaElement,
+  restoreMediaMute,
+} from '../../core/soundState'
 
 const PLACEHOLDER_VIDEO_MS = 400
 const VIDEO_READY_TIMEOUT_MS = 8000
-const PLAY_START_TIMEOUT_MS = 5000
+/** Cold mobile loads of ~13MB goodbye need more than a few seconds. */
+const PLAY_START_TIMEOUT_MS = 12_000
 const CANPLAY_RETRY_TIMEOUT_MS = 4000
 const PLAYBACK_FALLBACK_MS = 20_000
 const PLAYBACK_MAX_MS = 30_000
@@ -12,6 +17,14 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms)
   })
+}
+
+function isAutoplayBlocked(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const name = 'name' in error ? String(error.name) : ''
+  if (name === 'NotAllowedError') return true
+  const message = 'message' in error ? String(error.message) : ''
+  return /not allowed|user.*(gesture|interact)/i.test(message)
 }
 
 export type DoorMediaMode =
@@ -34,6 +47,10 @@ export class DoorMediaController {
   /** Bumps on each prime and when real playback starts so stale primes cannot pause the video. */
   private greetingPrimeGeneration = 0
   private greetingPlayInProgress = false
+  /** Once real goodbye playback starts, ignore stale muted primes. */
+  private goodbyePrimeSettled = false
+  private goodbyePrimeGeneration = 0
+  private goodbyePlayInProgress = false
   private unregisterGreetingSound: (() => void) | null = null
   private unregisterGoodbyeSound: (() => void) | null = null
   private skipActivePlayback: (() => void) | null = null
@@ -130,6 +147,52 @@ export class DoorMediaController {
       })
   }
 
+  /**
+   * Call synchronously from candy plunge/grab gestures so iOS will allow
+   * unmuted (or at least primed) goodbye playback after async announcement.
+   * Does not change door media mode — candy scene is still active.
+   */
+  primeGoodbyePlayback(): void {
+    if (this.goodbyePlayInProgress) return
+
+    const mode = this.mediaRoot.dataset.mode as DoorMediaMode
+    if (mode === 'goodbye') return
+
+    const src = assets.door.goodbyeVideo
+    if (!src) return
+
+    const video = this.goodbyeVideo
+    const generation = ++this.goodbyePrimeGeneration
+    this.ensureGoodbyeSource(src)
+    video.muted = true
+    const playPromise = video.play()
+    if (!playPromise) {
+      restoreMediaMute(video)
+      return
+    }
+    void playPromise
+      .then(() => {
+        if (generation !== this.goodbyePrimeGeneration) return
+        if (this.goodbyePrimeSettled) return
+        video.pause()
+        video.currentTime = 0
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (generation !== this.goodbyePrimeGeneration) return
+        if (!this.goodbyePrimeSettled) {
+          restoreMediaMute(video)
+        }
+      })
+  }
+
+  /** Start buffering goodbye during the candy scene (before the outro plays). */
+  preloadGoodbye(): void {
+    const src = assets.door.goodbyeVideo
+    if (!src) return
+    this.ensureGoodbyeSource(src)
+  }
+
   setSkipVisibleHandler(handler: (visible: boolean) => void): void {
     this.onSkipVisibleChange = handler
   }
@@ -195,6 +258,9 @@ export class DoorMediaController {
           {
             onPlaying: () => this.setMode('greeting'),
             captionsUrl: assets.door.greetingCaptions,
+            markPrimeSettled: () => {
+              this.greetingPrimeSettled = true
+            },
           },
         ),
         wait(deadline),
@@ -207,31 +273,46 @@ export class DoorMediaController {
   }
 
   async playGoodbye(): Promise<void> {
-    this.pauseAllVideos()
-    this.setMode('goodbye')
+    this.goodbyePlayInProgress = true
+    this.invalidateGoodbyePrime()
+    this.greetingVideo.pause()
 
-    const src = assets.door.goodbyeVideo
-    if (!src) {
-      await wait(PLACEHOLDER_VIDEO_MS)
+    try {
+      const src = assets.door.goodbyeVideo
+      if (!src) {
+        await wait(PLACEHOLDER_VIDEO_MS)
+        this.setMode('closed')
+        return
+      }
+
+      const video = this.goodbyeVideo
+      this.ensureGoodbyeSource(src)
+      this.setMode('goodbye')
+
+      await this.waitForStartFrame(video, src)
+
+      const deadline = this.playbackDeadlineMs(video)
+      await Promise.race([
+        this.playVideo(
+          video,
+          src,
+          this.goodbyeLoaded,
+          () => {
+            this.goodbyeLoaded = true
+          },
+          {
+            captionsUrl: assets.door.goodbyeCaptions,
+            markPrimeSettled: () => {
+              this.goodbyePrimeSettled = true
+            },
+          },
+        ),
+        wait(deadline),
+      ])
       this.setMode('closed')
-      return
+    } finally {
+      this.goodbyePlayInProgress = false
     }
-
-    const video = this.goodbyeVideo
-    const deadline = this.playbackDeadlineMs(video)
-    await Promise.race([
-      this.playVideo(
-        video,
-        src,
-        this.goodbyeLoaded,
-        () => {
-          this.goodbyeLoaded = true
-        },
-        { captionsUrl: assets.door.goodbyeCaptions },
-      ),
-      wait(deadline),
-    ])
-    this.setMode('closed')
   }
 
   destroy(): void {
@@ -291,12 +372,25 @@ export class DoorMediaController {
     this.greetingPrimeSettled = false
   }
 
+  private invalidateGoodbyePrime(): void {
+    this.goodbyePrimeGeneration += 1
+    this.goodbyePrimeSettled = false
+  }
+
   private ensureGreetingSource(src: string): void {
     if (this.greetingVideo.getAttribute('src') === src) return
     this.greetingVideo.preload = 'auto'
     this.greetingVideo.src = src
     this.greetingVideo.load()
     this.greetingLoaded = true
+  }
+
+  private ensureGoodbyeSource(src: string): void {
+    if (this.goodbyeVideo.getAttribute('src') === src) return
+    this.goodbyeVideo.preload = 'auto'
+    this.goodbyeVideo.src = src
+    this.goodbyeVideo.load()
+    this.goodbyeLoaded = true
   }
 
   private playbackDeadlineMs(video: HTMLVideoElement): number {
@@ -365,13 +459,18 @@ export class DoorMediaController {
     src: string,
     alreadyLoaded: boolean,
     onLoaded: () => void,
-    options?: { onPlaying?: () => void; captionsUrl?: string },
+    options?: {
+      onPlaying?: () => void
+      captionsUrl?: string
+      markPrimeSettled?: () => void
+    },
   ): Promise<void> {
     return new Promise((resolve) => {
       let finished = false
       let startWatchdog = 0
       let playbackWatchdog = 0
       let canplayRetryTimer = 0
+      let forcedMute = false
 
       const cleanup = () => {
         window.clearTimeout(startWatchdog)
@@ -419,28 +518,57 @@ export class DoorMediaController {
         armPlaybackWatchdog()
       }
 
-      const onCanplayRetry = () => {
-        window.clearTimeout(canplayRetryTimer)
-        video.removeEventListener('canplay', onCanplayRetry)
-        void video.play().catch(() => onError())
-      }
+      const playWithMuteFallback = (): void => {
+        options?.markPrimeSettled?.()
+        if (!forcedMute) {
+          restoreMediaMute(video)
+        } else {
+          video.muted = true
+        }
 
-      const tryPlay = () => {
-        this.greetingPrimeSettled = true
-        restoreMediaMute(video)
         const playPromise = video.play()
         if (!playPromise) return
-        void playPromise.catch(() => {
+
+        void playPromise.catch((error: unknown) => {
+          if (finished) return
+
+          // iOS/Safari often blocks unmuted play after async gaps; muted is allowed.
+          if (!forcedMute && !isSoundMuted() && isAutoplayBlocked(error)) {
+            forcedMute = true
+            video.muted = true
+            void video
+              .play()
+              .then(() => {
+                // Stay muted — unmuting without a gesture pauses on iOS.
+                // Sound toggle is a user gesture and will sync unmute later.
+              })
+              .catch(() => scheduleCanplayRetry())
+            return
+          }
+
           if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
             void video.play().catch(() => onError())
             return
           }
-          canplayRetryTimer = window.setTimeout(
-            () => onError(),
-            CANPLAY_RETRY_TIMEOUT_MS,
-          )
-          video.addEventListener('canplay', onCanplayRetry)
+
+          scheduleCanplayRetry()
         })
+      }
+
+      const scheduleCanplayRetry = () => {
+        window.clearTimeout(canplayRetryTimer)
+        video.removeEventListener('canplay', onCanplayRetry)
+        canplayRetryTimer = window.setTimeout(
+          () => onError(),
+          CANPLAY_RETRY_TIMEOUT_MS,
+        )
+        video.addEventListener('canplay', onCanplayRetry)
+      }
+
+      const onCanplayRetry = () => {
+        window.clearTimeout(canplayRetryTimer)
+        video.removeEventListener('canplay', onCanplayRetry)
+        playWithMuteFallback()
       }
 
       video.addEventListener('ended', onEnded)
@@ -465,7 +593,7 @@ export class DoorMediaController {
         video.currentTime = 0
       }
 
-      tryPlay()
+      playWithMuteFallback()
     })
   }
 }

@@ -33,6 +33,8 @@ export interface CandyRummageOptions {
   onPrizeRevealed?: (prize: Prize) => void
   /** Fired when the visitor first plunges into the bowl (cancels idle auto-goodbye). */
   onPlungeStart?: () => void
+  /** Fired synchronously on grab pointer/key — for iOS goodbye video priming. */
+  onGrabStart?: () => void
 }
 
 export interface CandyRummageController {
@@ -237,6 +239,7 @@ export function createCandyRummageController(
     getObjectsFrontRoot,
     onPrizeRevealed,
     onPlungeStart,
+    onGrabStart,
   } = options
 
   function rootForLayer(layer: ObjectLayer): HTMLElement | null {
@@ -1077,6 +1080,7 @@ export function createCandyRummageController(
     if (!canGrab() || !pose) return
     grabStarted = true
     state = 'grabbing'
+    onGrabStart?.()
     stopFollowLoop()
 
     const mid = overlayPoint(clientX, clientY, overlay)

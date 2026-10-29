@@ -181,6 +181,12 @@ export class ExperienceController {
       getObjectsFrontRoot: () => this.hands?.objectsFrontRoot ?? null,
       onPlungeStart: () => {
         this.clearCandyAutoGoodbyeTimer()
+        // Must run in the same turn as the plunge gesture for iOS goodbye unlock.
+        this.door.primeGoodbyePlayback()
+      },
+      onGrabStart: () => {
+        // Re-prime closer to outro — announcement still runs async after this.
+        this.door.primeGoodbyePlayback()
       },
       onPrizeRevealed: (prize) => {
         this.clearCandyAutoGoodbyeTimer()
@@ -219,6 +225,7 @@ export class ExperienceController {
       gsap.set(candyScene, { opacity: 1 })
     }
     this.state = 'waiting-for-candy'
+    this.door.preloadGoodbye()
     this.candy.setInteractive(true)
     this.candyRummage?.bind()
   }
@@ -364,6 +371,7 @@ export class ExperienceController {
 
     this.state = 'waiting-for-candy'
     await this.animateTransitionToCandy()
+    this.door.preloadGoodbye()
     this.candy.setInteractive(true)
     this.candyRummage?.bind()
     this.busy = false

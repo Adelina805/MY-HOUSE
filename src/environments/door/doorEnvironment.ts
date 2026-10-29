@@ -19,6 +19,10 @@ export interface DoorEnvironment {
   playKnockFeedback(): Promise<void>
   playGreeting(): Promise<void>
   playGoodbye(): Promise<void>
+  /** Buffer goodbye during candy so mobile isn't cold-loading at outro. */
+  preloadGoodbye(): void
+  /** Sync muted prime from candy plunge/grab gesture (iOS autoplay). */
+  primeGoodbyePlayback(): void
   applyFinishedState(): void
   resetToIdle(): void
   bindKnockHandler(handler: (point: KnockPoint) => void): void
@@ -250,6 +254,14 @@ export function createDoorEnvironment(): DoorEnvironment {
 
     playGoodbye(): Promise<void> {
       return media?.playGoodbye() ?? Promise.resolve()
+    },
+
+    preloadGoodbye(): void {
+      media?.preloadGoodbye()
+    },
+
+    primeGoodbyePlayback(): void {
+      media?.primeGoodbyePlayback()
     },
 
     applyFinishedState(): void {
