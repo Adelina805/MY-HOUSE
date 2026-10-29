@@ -345,13 +345,29 @@
 .guestbook-overlay__entry {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem 0.75rem;
+  grid-template-areas:
+    'visitor time'
+    'action action';
+  gap: 0.1rem 0.75rem;
   align-items: start;
-  padding: 0.35rem 0;
+  padding: 0.65rem 0;
   border: none;
 }
 
+.guestbook-overlay__entry-visitor {
+  grid-area: visitor;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  font-size: clamp(0.75rem, 1.4vw, 0.9rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1a1a1a;
+  text-transform: lowercase;
+  min-width: 0;
+}
+
 .guestbook-overlay__entry-text {
+  grid-area: action;
   margin: 0;
   font-family: system-ui, sans-serif;
   font-size: clamp(0.75rem, 1.4vw, 0.9rem);
@@ -367,6 +383,7 @@
 }
 
 .guestbook-overlay__entry-time {
+  grid-area: time;
   margin: 0;
   font-family: system-ui, sans-serif;
   font-size: clamp(0.68rem, 1.2vw, 0.78rem);
@@ -407,15 +424,6 @@
   .guestbook-overlay__paper {
     max-height: 96dvh;
     margin-top: 0;
-  }
-
-  .guestbook-overlay__entry {
-    grid-template-columns: 1fr;
-    gap: 0.1rem;
-  }
-
-  .guestbook-overlay__entry-time {
-    text-align: left;
   }
 
   .guestbook-overlay__stats {

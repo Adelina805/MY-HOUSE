@@ -64,11 +64,7 @@ function formatEntryTime(createdAt: string, now: Date): string {
 
 function buildEntrySentence(entry: GuestbookEntry): DocumentFragment {
   const frag = document.createDocumentFragment()
-  frag.append(
-    document.createTextNode(
-      `${entry.alias} ${entry.action} a `,
-    ),
-  )
+  frag.append(document.createTextNode(`${entry.action} a `))
   const object = document.createElement('strong')
   object.className = 'guestbook-overlay__entry-object'
   object.textContent = entry.objectName
@@ -172,15 +168,19 @@ export function createGuestbookController(): GuestbookController {
       const li = document.createElement('li')
       li.className = 'guestbook-overlay__entry'
 
-      const text = document.createElement('p')
-      text.className = 'guestbook-overlay__entry-text'
-      text.append(buildEntrySentence(entry))
+      const visitor = document.createElement('p')
+      visitor.className = 'guestbook-overlay__entry-visitor'
+      visitor.textContent = entry.alias
 
       const time = document.createElement('p')
       time.className = 'guestbook-overlay__entry-time'
       time.textContent = formatEntryTime(entry.createdAt, now)
 
-      li.append(text, time)
+      const text = document.createElement('p')
+      text.className = 'guestbook-overlay__entry-text'
+      text.append(buildEntrySentence(entry))
+
+      li.append(visitor, time, text)
       listEl.append(li)
     }
   }
