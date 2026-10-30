@@ -186,7 +186,7 @@ export const PRIZES: PrizeDefinition[] = [
     ["Ike's Place", 'Hillcrest', 'UTC']
   ),
   prize(
-    'japanese-naurical-glass-orb',
+    'japanese-nautical-glass-orb',
     'Japanese nautical glass orb',
     ['sea-glass', 'mysterious', 'barnacle-kissed', 'ancient'],
     [...BEACH, 'La Jolla Cove']
