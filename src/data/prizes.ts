@@ -114,6 +114,12 @@ export const PRIZES: PrizeDefinition[] = [
     [...NEIGHBORHOOD, 'SDSU']
   ),
   prize(
+    'broken-sandy-sunglasses',
+    'broken sandy sunglasses',
+    ['crusty', 'one-armed', 'sun-bleached', 'questionable'],
+    BEACH
+  ),
+  prize(
     'california-burrito',
     'California burrito',
     ['legendary', 'slightly crushed', 'fries-included', 'life-changing'],
@@ -124,6 +130,18 @@ export const PRIZES: PrizeDefinition[] = [
     'cocktail umbrella',
     ['tiny', 'festive', 'slightly damp', 'party'],
     [...BEACH, 'Gaslamp Quarter', 'Mission Bay']
+  ),
+  prize(
+    'comic-con-buttons',
+    'Comic-Con buttons',
+    ['mysterious', 'collector', 'slightly bent', 'exclusive'],
+    [...DOWNTOWN, 'Gaslamp Quarter']
+  ),
+  prize(
+    'concha-pastrie',
+    'concha pastry',
+    ['sugar-dusted', 'slightly stale', 'bakery', 'comforting'],
+    [...FOOD_SPOTS, 'Barrio Logan']
   ),
   prize(
     'cool-ranch-doritos',
@@ -144,10 +162,28 @@ export const PRIZES: PrizeDefinition[] = [
     [...DOWNTOWN, ...FOOD_SPOTS]
   ),
   prize(
+    'de-la-rosa-mazapan',
+    'De la Rosa mazapán',
+    ['crumbly', 'powdery', 'nostalgic', 'sweet'],
+    [...FOOD_SPOTS, 'Barrio Logan', 'Old Town']
+  ),
+  prize(
     'dollar-bills',
     'dollar bills',
     ['slightly sandy', 'folded', 'optimistic', 'wrinkled'],
     [...BEACH, ...DOWNTOWN]
+  ),
+  prize(
+    'driftwood-milk-cartons',
+    'driftwood milk cartons',
+    ['weathered', 'tide-gifted', 'mysterious', 'sun-bleached'],
+    BEACH
+  ),
+  prize(
+    'extra-spearmint-gum',
+    'Extra spearmint gum',
+    ['minty', 'half-used', 'pocket-warmed', 'refreshing'],
+    [...NEIGHBORHOOD, 'PB Boardwalk']
   ),
   prize(
     'flip-flop',
@@ -174,10 +210,28 @@ export const PRIZES: PrizeDefinition[] = [
     [...BEACH, ...NEIGHBORHOOD]
   ),
   prize(
+    'hodads-sticker',
+    "Hodad's sticker",
+    ['greasy-adjacent', 'proud', 'burger-stained', 'legendary'],
+    [...FOOD_SPOTS, 'Ocean Beach']
+  ),
+  prize(
     'house-key',
     'house key',
     ['forgotten', 'jingly', 'slightly bent', 'important'],
     [...NEIGHBORHOOD, 'Mission Hills']
+  ),
+  prize(
+    'ikea-mini-bag-keychain',
+    'IKEA mini bag keychain',
+    ['tiny', 'blue', 'strangely useful', 'assembled'],
+    ['Mission Valley', 'UTC']
+  ),
+  prize(
+    'ikea-pencil',
+    'IKEA pencil',
+    ['suspicious', 'flat-pack', 'freebie', 'slightly chewed'],
+    ['Mission Valley', 'UTC']
   ),
   prize(
     'ikes-sandwich',
@@ -192,10 +246,28 @@ export const PRIZES: PrizeDefinition[] = [
     [...BEACH, 'La Jolla Cove']
   ),
   prize(
+    'julian-apple-pie',
+    'Julian apple pie',
+    ['warm', 'crumb-topped', 'road-trip', 'comforting'],
+    ['Julian', ...FOOD_SPOTS]
+  ),
+  prize(
     'killer-fish-from-san-diego',
     'killer fish from San Diego',
     ['menacing', 'cartoonish', 'unexpectedly local', 'fierce'],
     [...BEACH, 'SeaWorld parking lot']
+  ),
+  prize(
+    'kinder-chocolate',
+    'Kinder chocolate',
+    ['melty', 'foil-wrapped', 'imported', 'pocket-squished'],
+    [...NEIGHBORHOOD, 'PB Boardwalk']
+  ),
+  prize(
+    'kinder-surprise-egg',
+    'Kinder Surprise egg',
+    ['mysterious', 'foil-crinkled', 'toy-hiding', 'forbidden'],
+    [...NEIGHBORHOOD, 'Balboa Park']
   ),
   prize(
     'lemon',
@@ -222,16 +294,64 @@ export const PRIZES: PrizeDefinition[] = [
     [...NEIGHBORHOOD, 'Balboa Park']
   ),
   prize(
+    'mexican-pink-sprinkle-cake',
+    'Mexican pink sprinkle cake',
+    ['festive', 'slightly smashed', 'bakery', 'celebratory'],
+    [...FOOD_SPOTS, 'Barrio Logan']
+  ),
+  prize(
+    'morey-bodyboard',
+    'Morey bodyboard',
+    ['wax-slick', 'dinged', 'wave-ready', 'sandy'],
+    BEACH
+  ),
+  prize(
+    'movie-ticket',
+    'movie ticket',
+    ['torn', 'stubbornly kept', 'faded', 'matinee'],
+    [...DOWNTOWN, 'Movie theater lobby']
+  ),
+  prize(
+    'mts-san-diego-bus',
+    'MTS San Diego bus',
+    ['rumbling', 'slightly late', 'transit', 'familiar'],
+    [...DOWNTOWN, 'Old Town', 'UTC']
+  ),
+  prize(
     'orange',
     'orange',
     ['juicy', 'pocket-warmed', 'slightly squashed', 'citrus'],
     [...NEIGHBORHOOD, 'Carlsbad']
   ),
   prize(
+    'pacific-surfliner-train',
+    'Pacific Surfliner',
+    ['coastal', 'ticket-stubbed', 'scenic', 'punctual-ish'],
+    ['Santa Fe Depot', 'Downtown', 'Solana Beach', 'Oceanside']
+  ),
+  prize(
+    'padres-baseball',
+    'Padres baseball',
+    ['powerful', 'scuffed', 'game-day', 'foul-ball'],
+    [...DOWNTOWN, 'Petco Park', 'East Village']
+  ),
+  prize(
     'padres-cap',
     'Padres cap',
     ['sweat-stained', 'lucky', 'sun-faded', 'game-day'],
     [...DOWNTOWN, 'Petco Park']
+  ),
+  prize(
+    'padres-soapy-joes-air-freshener',
+    "Padres Soapy Joe's air freshener",
+    ['pine-scented', 'dashboard', 'faded', 'loyal'],
+    [...DOWNTOWN, 'Petco Park']
+  ),
+  prize(
+    'panda-express-fortune-cookie',
+    'Panda Express fortune cookie',
+    ['questionable', 'cryptic', 'cracked', 'destiny'],
+    [...FOOD_SPOTS, 'Convoy']
   ),
   prize(
     'paperclip',
@@ -252,10 +372,22 @@ export const PRIZES: PrizeDefinition[] = [
     [...NEIGHBORHOOD, 'Balboa Park']
   ),
   prize(
+    'pinecone',
+    'pinecone',
+    ['prickly', 'forest-adjacent', 'pocket-sized', 'seasonal'],
+    [...NEIGHBORHOOD, 'Balboa Park']
+  ),
+  prize(
     'pink-eraser',
     'pink eraser',
     ['half-used', 'rubbery', 'mistake-covering', 'school-desk'],
     [...NEIGHBORHOOD, 'SDSU']
+  ),
+  prize(
+    'plastic-spork',
+    'plastic spork',
+    ['versatile', 'slightly bent', 'takeout', 'unappreciated'],
+    FOOD_SPOTS
   ),
   prize(
     'pronto-card',
@@ -270,10 +402,28 @@ export const PRIZES: PrizeDefinition[] = [
     [...NEIGHBORHOOD, 'Balboa Park']
   ),
   prize(
+    'red-solo-cup',
+    'red Solo cup',
+    ['party', 'slightly crushed', 'classic', 'suspicious'],
+    [...BEACH, 'Mission Bay']
+  ),
+  prize(
+    'rellerindos-tamarindo-candy',
+    'Rellerindos tamarindo candy',
+    ['tangy', 'sticky', 'chili-dusted', 'nostalgic'],
+    [...FOOD_SPOTS, 'Barrio Logan']
+  ),
+  prize(
     'rubber-duck',
     'rubber duck',
     ['squeaky', 'bath-escaped', 'cheerful', 'bobbing'],
     [...BEACH, 'Mission Bay']
+  ),
+  prize(
+    'rubiks-cube',
+    "Rubik's Cube",
+    ['scrambled', 'half-solved', 'frustrating', 'classic'],
+    [...NEIGHBORHOOD, 'Balboa Park']
   ),
   prize(
     'rusty-nail',
@@ -282,16 +432,58 @@ export const PRIZES: PrizeDefinition[] = [
     [...BEACH, ...NEIGHBORHOOD]
   ),
   prize(
+    'san-diego-airport-luggage-tag',
+    'San Diego airport luggage tag',
+    ['travel-worn', 'looped', 'almost-lost', 'official'],
+    ['San Diego International Airport']
+  ),
+  prize(
+    'san-diego-balboa-park-sticker',
+    'San Diego Balboa Park sticker',
+    ['peeling', 'proud', 'sun-faded', 'tourist'],
+    ['Balboa Park']
+  ),
+  prize(
+    'san-diego-parking-receipt',
+    'San Diego parking receipt',
+    ['expensive', 'faded', 'guilt-inducing', 'crumpled'],
+    [...DOWNTOWN, 'Pacific Beach', 'La Jolla']
+  ),
+  prize(
     'san-diego-parrot',
     'San Diego parrot',
     ['loud', 'escaped', 'tropical', 'gossiping'],
     [...NEIGHBORHOOD, 'Balboa Park', 'Ocean Beach']
   ),
   prize(
+    'san-diego-trolley',
+    'San Diego trolley',
+    ['clattering', 'orange', 'punctual-ish', 'familiar'],
+    [...DOWNTOWN, 'Old Town', 'UTC']
+  ),
+  prize(
+    'san-diego-wave-soccer-sticker',
+    'San Diego Wave soccer sticker',
+    ['spirited', 'peeling', 'game-day', 'proud'],
+    [...DOWNTOWN, 'Snapdragon Stadium']
+  ),
+  prize(
+    'san-diego-zoo-magnet',
+    'San Diego Zoo magnet',
+    ['fridge-ready', 'slightly chipped', 'souvenir', 'animal'],
+    ['Balboa Park']
+  ),
+  prize(
     'sand-dollar',
     'sand dollar',
     ['fragile', 'perfect', 'bleached', 'tide-gifted'],
     BEACH
+  ),
+  prize(
+    'sdsu-aztecs-sticker',
+    'SDSU Aztecs sticker',
+    ['campus', 'slightly peeled', 'spirited', 'textbook'],
+    [...NEIGHBORHOOD, 'SDSU', 'College Area']
   ),
   prize(
     'sea-monster-toy',
@@ -324,6 +516,12 @@ export const PRIZES: PrizeDefinition[] = [
     BEACH
   ),
   prize(
+    'soapy-joes-air-freshener',
+    "Soapy Joe's air freshener",
+    ['pine-scented', 'dashboard', 'faded', 'carwash'],
+    [...NEIGHBORHOOD, 'Pacific Beach']
+  ),
+  prize(
     'sour-patch-kids',
     'Sour Patch Kids',
     ['mouth-puckering', 'half-stuck', 'sugar-coated', 'shared'],
@@ -334,6 +532,12 @@ export const PRIZES: PrizeDefinition[] = [
     'Sour Skittles',
     ['rainbow', 'face-contorting', 'spilled', 'addictive'],
     [...NEIGHBORHOOD, 'PB Boardwalk']
+  ),
+  prize(
+    'soy-sauce-packet',
+    'soy sauce packet',
+    ['leaky', 'takeout', 'forgotten', 'salty'],
+    [...FOOD_SPOTS, 'Convoy']
   ),
   prize(
     'spare-change',
@@ -366,6 +570,12 @@ export const PRIZES: PrizeDefinition[] = [
     BEACH
   ),
   prize(
+    'sun-bum-banana-lip-balm',
+    'Sun Bum banana lip balm',
+    ['tropical', 'sticky', 'beach-bag', 'sunscreen-adjacent'],
+    BEACH
+  ),
+  prize(
     'surfboard-fin',
     'surfboard fin',
     ['snapped', 'wax-covered', 'orphaned', 'shredded'],
@@ -384,6 +594,12 @@ export const PRIZES: PrizeDefinition[] = [
     FOOD_SPOTS
   ),
   prize(
+    'the-koala-newspaper',
+    'The Koala newspaper',
+    ['controversial', 'coffee-stained', 'campus', 'vintage'],
+    [...DOWNTOWN, 'SDSU']
+  ),
+  prize(
     'tortilla-chip',
     'tortilla chip',
     ['lonely', 'salsa-ready', 'crumbled', 'triangular'],
@@ -394,6 +610,18 @@ export const PRIZES: PrizeDefinition[] = [
     'toy dinosaur',
     ['roaring', 'plastic', 'prehistoric', 'battle-worn'],
     [...NEIGHBORHOOD, 'Balboa Park']
+  ),
+  prize(
+    'toy-shark',
+    'toy shark',
+    ['chomp-ready', 'bathtub', 'plastic', 'menacing'],
+    [...BEACH, 'Mission Bay']
+  ),
+  prize(
+    'trader-joes-mini-tote-bag',
+    "Trader Joe's mini tote bag",
+    ['reusable', 'tiny', 'grocery', 'unexpectedly sturdy'],
+    [...NEIGHBORHOOD, 'Hillcrest']
   ),
   prize(
     'traffic-cone',
@@ -408,10 +636,22 @@ export const PRIZES: PrizeDefinition[] = [
     [...NEIGHBORHOOD, 'Balboa Park', 'Petco Park']
   ),
   prize(
+    'unconditional-surrender-statue',
+    'Unconditional Surrender statue',
+    ['iconic', 'tourist', 'kissing', 'photographed'],
+    [...DOWNTOWN, 'Seaport Village', 'Embarcadero']
+  ),
+  prize(
     'usb-flash-drive',
     'USB flash drive',
     ['mysterious', 'unlabeled', 'probably-empty', 'tech'],
     [...DOWNTOWN, ...NEIGHBORHOOD]
+  ),
+  prize(
+    'uss-midway-aircraft-carrier',
+    'USS Midway',
+    ['historic', 'towering', 'harbor', 'museum'],
+    ['Downtown', 'Embarcadero', 'Seaport Village']
   ),
   prize(
     'volleyball',

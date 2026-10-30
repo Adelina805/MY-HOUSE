@@ -64,6 +64,12 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "SDSU"],
   },
   {
+    id: "broken-sandy-sunglasses",
+    objectName: "broken sandy sunglasses",
+    adjectives: ["crusty", "one-armed", "sun-bleached", "questionable"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
+  },
+  {
     id: "california-burrito",
     objectName: "California burrito",
     adjectives: ["legendary", "slightly crushed", "fries-included", "life-changing"],
@@ -74,6 +80,18 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     objectName: "cocktail umbrella",
     adjectives: ["tiny", "festive", "slightly damp", "party"],
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "Gaslamp Quarter", "Mission Bay"],
+  },
+  {
+    id: "comic-con-buttons",
+    objectName: "Comic-Con buttons",
+    adjectives: ["mysterious", "collector", "slightly bent", "exclusive"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village"],
+  },
+  {
+    id: "concha-pastrie",
+    objectName: "concha pastry",
+    adjectives: ["sugar-dusted", "slightly stale", "bakery", "comforting"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
   },
   {
     id: "cool-ranch-doritos",
@@ -94,10 +112,28 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
   },
   {
+    id: "de-la-rosa-mazapan",
+    objectName: "De la Rosa mazapán",
+    adjectives: ["crumbly", "powdery", "nostalgic", "sweet"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
+  },
+  {
     id: "dollar-bills",
     objectName: "dollar bills",
     adjectives: ["slightly sandy", "folded", "optimistic", "wrinkled"],
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village"],
+  },
+  {
+    id: "driftwood-milk-cartons",
+    objectName: "driftwood milk cartons",
+    adjectives: ["weathered", "tide-gifted", "mysterious", "sun-bleached"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
+  },
+  {
+    id: "extra-spearmint-gum",
+    objectName: "Extra spearmint gum",
+    adjectives: ["minty", "half-used", "pocket-warmed", "refreshing"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "PB Boardwalk"],
   },
   {
     id: "flip-flop",
@@ -124,10 +160,28 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington"],
   },
   {
+    id: "hodads-sticker",
+    objectName: "Hodad's sticker",
+    adjectives: ["greasy-adjacent", "proud", "burger-stained", "legendary"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station", "Ocean Beach"],
+  },
+  {
     id: "house-key",
     objectName: "house key",
     adjectives: ["forgotten", "jingly", "slightly bent", "important"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Mission Hills"],
+  },
+  {
+    id: "ikea-mini-bag-keychain",
+    objectName: "IKEA mini bag keychain",
+    adjectives: ["tiny", "blue", "strangely useful", "assembled"],
+    locations: ["Mission Valley", "UTC"],
+  },
+  {
+    id: "ikea-pencil",
+    objectName: "IKEA pencil",
+    adjectives: ["suspicious", "flat-pack", "freebie", "slightly chewed"],
+    locations: ["Mission Valley", "UTC"],
   },
   {
     id: "ikes-sandwich",
@@ -142,10 +196,28 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "La Jolla Cove"],
   },
   {
+    id: "julian-apple-pie",
+    objectName: "Julian apple pie",
+    adjectives: ["warm", "crumb-topped", "road-trip", "comforting"],
+    locations: ["Julian", "Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
+  },
+  {
     id: "killer-fish-from-san-diego",
     objectName: "killer fish from San Diego",
     adjectives: ["menacing", "cartoonish", "unexpectedly local", "fierce"],
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "SeaWorld parking lot"],
+  },
+  {
+    id: "kinder-chocolate",
+    objectName: "Kinder chocolate",
+    adjectives: ["melty", "foil-wrapped", "imported", "pocket-squished"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "PB Boardwalk"],
+  },
+  {
+    id: "kinder-surprise-egg",
+    objectName: "Kinder Surprise egg",
+    adjectives: ["mysterious", "foil-crinkled", "toy-hiding", "forbidden"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
   },
   {
     id: "lemon",
@@ -172,16 +244,64 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
   },
   {
+    id: "mexican-pink-sprinkle-cake",
+    objectName: "Mexican pink sprinkle cake",
+    adjectives: ["festive", "slightly smashed", "bakery", "celebratory"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
+  },
+  {
+    id: "morey-bodyboard",
+    objectName: "Morey bodyboard",
+    adjectives: ["wax-slick", "dinged", "wave-ready", "sandy"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
+  },
+  {
+    id: "movie-ticket",
+    objectName: "movie ticket",
+    adjectives: ["torn", "stubbornly kept", "faded", "matinee"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Movie theater lobby"],
+  },
+  {
+    id: "mts-san-diego-bus",
+    objectName: "MTS San Diego bus",
+    adjectives: ["rumbling", "slightly late", "transit", "familiar"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Old Town", "UTC"],
+  },
+  {
     id: "orange",
     objectName: "orange",
     adjectives: ["juicy", "pocket-warmed", "slightly squashed", "citrus"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Carlsbad"],
   },
   {
+    id: "pacific-surfliner-train",
+    objectName: "Pacific Surfliner",
+    adjectives: ["coastal", "ticket-stubbed", "scenic", "punctual-ish"],
+    locations: ["Santa Fe Depot", "Downtown", "Solana Beach", "Oceanside"],
+  },
+  {
+    id: "padres-baseball",
+    objectName: "Padres baseball",
+    adjectives: ["powerful", "scuffed", "game-day", "foul-ball"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village"],
+  },
+  {
     id: "padres-cap",
     objectName: "Padres cap",
     adjectives: ["sweat-stained", "lucky", "sun-faded", "game-day"],
     locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village"],
+  },
+  {
+    id: "padres-soapy-joes-air-freshener",
+    objectName: "Padres Soapy Joe's air freshener",
+    adjectives: ["pine-scented", "dashboard", "faded", "loyal"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village"],
+  },
+  {
+    id: "panda-express-fortune-cookie",
+    objectName: "Panda Express fortune cookie",
+    adjectives: ["questionable", "cryptic", "cracked", "destiny"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station", "Convoy"],
   },
   {
     id: "paperclip",
@@ -202,10 +322,22 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
   },
   {
+    id: "pinecone",
+    objectName: "pinecone",
+    adjectives: ["prickly", "forest-adjacent", "pocket-sized", "seasonal"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
+  },
+  {
     id: "pink-eraser",
     objectName: "pink eraser",
     adjectives: ["half-used", "rubbery", "mistake-covering", "school-desk"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "SDSU"],
+  },
+  {
+    id: "plastic-spork",
+    objectName: "plastic spork",
+    adjectives: ["versatile", "slightly bent", "takeout", "unappreciated"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
   },
   {
     id: "pronto-card",
@@ -220,10 +352,28 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
   },
   {
+    id: "red-solo-cup",
+    objectName: "red Solo cup",
+    adjectives: ["party", "slightly crushed", "classic", "suspicious"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "Mission Bay"],
+  },
+  {
+    id: "rellerindos-tamarindo-candy",
+    objectName: "Rellerindos tamarindo candy",
+    adjectives: ["tangy", "sticky", "chili-dusted", "nostalgic"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
+  },
+  {
     id: "rubber-duck",
     objectName: "rubber duck",
     adjectives: ["squeaky", "bath-escaped", "cheerful", "bobbing"],
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "Mission Bay"],
+  },
+  {
+    id: "rubiks-cube",
+    objectName: "Rubik's Cube",
+    adjectives: ["scrambled", "half-solved", "frustrating", "classic"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
   },
   {
     id: "rusty-nail",
@@ -232,16 +382,58 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington"],
   },
   {
+    id: "san-diego-airport-luggage-tag",
+    objectName: "San Diego airport luggage tag",
+    adjectives: ["travel-worn", "looped", "almost-lost", "official"],
+    locations: ["San Diego International Airport"],
+  },
+  {
+    id: "san-diego-balboa-park-sticker",
+    objectName: "San Diego Balboa Park sticker",
+    adjectives: ["peeling", "proud", "sun-faded", "tourist"],
+    locations: ["Balboa Park"],
+  },
+  {
+    id: "san-diego-parking-receipt",
+    objectName: "San Diego parking receipt",
+    adjectives: ["expensive", "faded", "guilt-inducing", "crumpled"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Pacific Beach", "La Jolla"],
+  },
+  {
     id: "san-diego-parrot",
     objectName: "San Diego parrot",
     adjectives: ["loud", "escaped", "tropical", "gossiping"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park", "Ocean Beach"],
   },
   {
+    id: "san-diego-trolley",
+    objectName: "San Diego trolley",
+    adjectives: ["clattering", "orange", "punctual-ish", "familiar"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Old Town", "UTC"],
+  },
+  {
+    id: "san-diego-wave-soccer-sticker",
+    objectName: "San Diego Wave soccer sticker",
+    adjectives: ["spirited", "peeling", "game-day", "proud"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Snapdragon Stadium"],
+  },
+  {
+    id: "san-diego-zoo-magnet",
+    objectName: "San Diego Zoo magnet",
+    adjectives: ["fridge-ready", "slightly chipped", "souvenir", "animal"],
+    locations: ["Balboa Park"],
+  },
+  {
     id: "sand-dollar",
     objectName: "sand dollar",
     adjectives: ["fragile", "perfect", "bleached", "tide-gifted"],
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
+  },
+  {
+    id: "sdsu-aztecs-sticker",
+    objectName: "SDSU Aztecs sticker",
+    adjectives: ["campus", "slightly peeled", "spirited", "textbook"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "SDSU", "College Area"],
   },
   {
     id: "sea-monster-toy",
@@ -274,6 +466,12 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
   },
   {
+    id: "soapy-joes-air-freshener",
+    objectName: "Soapy Joe's air freshener",
+    adjectives: ["pine-scented", "dashboard", "faded", "carwash"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Pacific Beach"],
+  },
+  {
     id: "sour-patch-kids",
     objectName: "Sour Patch Kids",
     adjectives: ["mouth-puckering", "half-stuck", "sugar-coated", "shared"],
@@ -284,6 +482,12 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     objectName: "Sour Skittles",
     adjectives: ["rainbow", "face-contorting", "spilled", "addictive"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "PB Boardwalk"],
+  },
+  {
+    id: "soy-sauce-packet",
+    objectName: "soy sauce packet",
+    adjectives: ["leaky", "takeout", "forgotten", "salty"],
+    locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station", "Convoy"],
   },
   {
     id: "spare-change",
@@ -316,6 +520,12 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
   },
   {
+    id: "sun-bum-banana-lip-balm",
+    objectName: "Sun Bum banana lip balm",
+    adjectives: ["tropical", "sticky", "beach-bag", "sunscreen-adjacent"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs"],
+  },
+  {
     id: "surfboard-fin",
     objectName: "surfboard fin",
     adjectives: ["snapped", "wax-covered", "orphaned", "shredded"],
@@ -334,6 +544,12 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["Ike's Place", "Old Town", "Barrio Logan", "PB Boardwalk", "Mission Bay", "Liberty Station"],
   },
   {
+    id: "the-koala-newspaper",
+    objectName: "The Koala newspaper",
+    adjectives: ["controversial", "coffee-stained", "campus", "vintage"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "SDSU"],
+  },
+  {
     id: "tortilla-chip",
     objectName: "tortilla chip",
     adjectives: ["lonely", "salsa-ready", "crumbled", "triangular"],
@@ -344,6 +560,18 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     objectName: "toy dinosaur",
     adjectives: ["roaring", "plastic", "prehistoric", "battle-worn"],
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park"],
+  },
+  {
+    id: "toy-shark",
+    objectName: "toy shark",
+    adjectives: ["chomp-ready", "bathtub", "plastic", "menacing"],
+    locations: ["Pacific Beach", "Mission Beach", "Ocean Beach", "La Jolla Shores", "Coronado Beach", "Sunset Cliffs", "Mission Bay"],
+  },
+  {
+    id: "trader-joes-mini-tote-bag",
+    objectName: "Trader Joe's mini tote bag",
+    adjectives: ["reusable", "tiny", "grocery", "unexpectedly sturdy"],
+    locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington"],
   },
   {
     id: "traffic-cone",
@@ -358,10 +586,22 @@ export const PRIZE_CATALOG: readonly CatalogPrize[] = [
     locations: ["North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington", "Balboa Park", "Petco Park"],
   },
   {
+    id: "unconditional-surrender-statue",
+    objectName: "Unconditional Surrender statue",
+    adjectives: ["iconic", "tourist", "kissing", "photographed"],
+    locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "Embarcadero"],
+  },
+  {
     id: "usb-flash-drive",
     objectName: "USB flash drive",
     adjectives: ["mysterious", "unlabeled", "probably-empty", "tech"],
     locations: ["Gaslamp Quarter", "East Village", "Little Italy", "Petco Park", "Seaport Village", "North Park", "South Park", "Hillcrest", "Normal Heights", "University Heights", "Kensington"],
+  },
+  {
+    id: "uss-midway-aircraft-carrier",
+    objectName: "USS Midway",
+    adjectives: ["historic", "towering", "harbor", "museum"],
+    locations: ["Downtown", "Embarcadero", "Seaport Village"],
   },
   {
     id: "volleyball",
