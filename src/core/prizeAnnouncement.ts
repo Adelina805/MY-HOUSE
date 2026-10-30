@@ -89,6 +89,7 @@ export function createPrizeAnnouncement(
   let playing = false
   let resolvePlay: (() => void) | null = null
   function playPrizeSound(): void {
+    stopSfx('rummage')
     stopSfx('prize')
     playSfx('prize')
   }

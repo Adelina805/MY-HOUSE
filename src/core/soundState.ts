@@ -39,6 +39,8 @@ const buffers = new Map<SfxId, AudioBuffer>()
 const bufferLoads = new Map<SfxId, Promise<AudioBuffer | null>>()
 const activeVoices = new Map<SfxId, Set<ActiveVoice>>()
 const decodeFailed = new Set<SfxId>()
+/** Bumped on play/stop so pending loadBuffer starts can be cancelled. */
+const sfxPlayGeneration = new Map<SfxId, number>()
 
 function applyToElement(element: HTMLMediaElement): void {
   element.muted = soundMuted
@@ -308,13 +310,19 @@ export function playSfx(
   // Keep a single rummage loop; activity windows just extend lifetime via stop timing.
   if (id === 'rummage' && hasActiveVoice(id)) return
 
+  const token = (sfxPlayGeneration.get(id) ?? 0) + 1
+  sfxPlayGeneration.set(id, token)
+
   void loadBuffer(id).then((buffer) => {
+    // stopSfx / a newer playSfx invalidated this start (common on mobile decode lag).
+    if (sfxPlayGeneration.get(id) !== token) return
     if (id === 'rummage' && hasActiveVoice(id)) return
     startVoice(id, buffer, options)
   })
 }
 
 export function stopSfx(id: SfxId): void {
+  sfxPlayGeneration.set(id, (sfxPlayGeneration.get(id) ?? 0) + 1)
   const set = activeVoices.get(id)
   if (!set || set.size === 0) return
   for (const voice of [...set]) {
