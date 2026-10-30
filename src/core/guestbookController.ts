@@ -2,15 +2,18 @@ import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { assets } from '../config/assets'
 import { transitions } from '../config/transitions'
-import {
-  getGuestbookReferenceNow,
-  getGuestbookStats,
-  getRecentGuestbookEntries,
-} from '../data/guestbookRepository'
-import type { GuestbookEntry } from '../data/guestbookTypes'
+import type { PublicVisitor } from '../data/apiContract'
+import { guestbookRepository, visitorSession } from '../data/backend'
+import type { GuestbookEntry, GuestbookStats } from '../data/guestbookRepository'
 import { registerMediaElement, restoreMediaMute } from './soundState'
 
 gsap.registerPlugin(Flip)
+
+/** Reopening after this long fetches the newest entries and totals again. */
+const GUESTBOOK_STALE_MS = 60_000
+/** get-guestbook may serve a first page up to 5 s old (HTTP and per-instance cache). */
+const FIRST_PAGE_CACHE_MS = 6000
+const STAT_PLACEHOLDER = '–'
 
 export interface GuestbookController {
   mount(options: {
@@ -62,9 +65,27 @@ function formatEntryTime(createdAt: string, now: Date): string {
   return `${month}/${day}/${year}`
 }
 
+/** "an apple", "a USB flash drive", "some tacos". */
+function articleForObject(name: string): 'a' | 'an' | 'some' {
+  const trimmed = name.trim()
+  if (/[^s]s$/i.test(trimmed) && !/\bof\b/i.test(trimmed)) return 'some'
+  // Initialisms are read letter by letter: "an MRI", "a USB".
+  if (/^[A-Z]{2,}\b/.test(trimmed)) return /^[AEFHILMNORSX]/.test(trimmed) ? 'an' : 'a'
+  return /^[aeiou]/i.test(trimmed) ? 'an' : 'a'
+}
+
+/** Varies the wording between entries while keeping each gift's sentence stable across loads. */
+function entryAction(awardId: string): 'received' | 'got' {
+  return Number.parseInt(awardId.slice(-1), 16) % 2 === 0 ? 'received' : 'got'
+}
+
 function buildEntrySentence(entry: GuestbookEntry): DocumentFragment {
   const frag = document.createDocumentFragment()
-  frag.append(document.createTextNode(`${entry.action} a `))
+  frag.append(
+    document.createTextNode(
+      `${entryAction(entry.awardId)} ${articleForObject(entry.objectName)} `,
+    ),
+  )
   const object = document.createElement('strong')
   object.className = 'guestbook-overlay__entry-object'
   object.textContent = entry.objectName
@@ -94,6 +115,41 @@ export function createGuestbookController(): GuestbookController {
   let noteVisible = false
   let previousFocus: HTMLElement | null = null
   let activeTimeline: gsap.core.Timeline | null = null
+
+  let noteVisitorEl: HTMLElement | null = null
+  let statValueEls: HTMLElement[] = []
+  let statusEl: HTMLLIElement | null = null
+  let stats: GuestbookStats | null = null
+  let entries: GuestbookEntry[] = []
+  const entryIds = new Set<string>()
+  let nextCursor: string | null = null
+  let loadedAt = 0
+  let awardRecordedSinceLoad = false
+  let lastAwardRecordedAt = Number.NEGATIVE_INFINITY
+  let loading: 'first' | 'more' | null = null
+  let loadError: 'first' | 'more' | 'cursor' | null = null
+  /** Bumped by each first-page load so slower, older responses are ignored. */
+  let generation = 0
+  let unsubscribeVisitor: (() => void) | null = null
+  let unsubscribeAwards: (() => void) | null = null
+
+  const onListScroll = (): void => {
+    maybeLoadMore()
+  }
+
+  const onRetryClick = (event: Event): void => {
+    event.stopPropagation()
+    if (loadError === 'more') {
+      void loadMore()
+    } else {
+      void loadFirstPage()
+    }
+  }
+
+  const onAwardRecorded = (): void => {
+    awardRecordedSinceLoad = true
+    lastAwardRecordedAt = Date.now()
+  }
 
   const onNoteClick = (event: Event): void => {
     event.preventDefault()
@@ -160,33 +216,166 @@ export function createGuestbookController(): GuestbookController {
     if (content) gsap.killTweensOf(content)
   }
 
-  function renderList(): void {
+  function buildEntry(entry: GuestbookEntry, now: Date): HTMLLIElement {
+    const li = document.createElement('li')
+    li.className = 'guestbook-overlay__entry'
+
+    const visitor = document.createElement('p')
+    visitor.className = 'guestbook-overlay__entry-visitor'
+    visitor.textContent = entry.alias
+
+    const time = document.createElement('p')
+    time.className = 'guestbook-overlay__entry-time'
+    time.textContent = formatEntryTime(entry.awardedAt, now)
+
+    const text = document.createElement('p')
+    text.className = 'guestbook-overlay__entry-text'
+    text.append(buildEntrySentence(entry))
+
+    li.append(visitor, time, text)
+    return li
+  }
+
+  function renderNoteVisitor(visitor: PublicVisitor | null): void {
+    if (!noteVisitorEl) return
+    noteVisitorEl.textContent = visitor
+      ? `You're visitor #${formatVisitorCount(visitor.visitorNumber)}`
+      : ''
+  }
+
+  function renderStats(): void {
+    const values = stats
+      ? [stats.visitorCount, stats.giftsGiven, stats.doorKnocks].map(formatVisitorCount)
+      : [STAT_PLACEHOLDER, STAT_PLACEHOLDER, STAT_PLACEHOLDER]
+    statValueEls.forEach((el, index) => {
+      el.textContent = values[index] ?? STAT_PLACEHOLDER
+    })
+  }
+
+  function statusCopy(): { text: string; retry: boolean } | null {
+    if (loading === 'more') return { text: 'loading…', retry: false }
+    if (loadError === 'more' || loadError === 'cursor') {
+      return { text: "couldn't load older visitors.", retry: true }
+    }
+    if (entries.length > 0) return null
+    if (loading === 'first') return { text: 'loading…', retry: false }
+    if (loadError === 'first') return { text: "couldn't reach the guestbook.", retry: true }
+    if (loadedAt > 0) return { text: 'no gifts given yet.', retry: false }
+    return null
+  }
+
+  /** Loading, empty and error messages share one row at the end of the list. */
+  function renderStatus(): void {
     if (!listEl) return
-    listEl.replaceChildren()
-    const now = getGuestbookReferenceNow()
-    for (const entry of getRecentGuestbookEntries()) {
-      const li = document.createElement('li')
-      li.className = 'guestbook-overlay__entry'
+    listEl.setAttribute('aria-busy', loading === null ? 'false' : 'true')
+    const copy = statusCopy()
+    if (!copy) {
+      statusEl?.remove()
+      statusEl = null
+      return
+    }
+    statusEl ??= document.createElement('li')
+    statusEl.className = 'guestbook-overlay__status'
+    const text = document.createElement('p')
+    text.className = 'guestbook-overlay__status-text'
+    text.textContent = copy.text
+    statusEl.replaceChildren(text)
+    if (copy.retry) {
+      const retry = document.createElement('button')
+      retry.type = 'button'
+      retry.className = 'guestbook-overlay__retry'
+      retry.textContent = 'try again'
+      retry.addEventListener('click', onRetryClick)
+      statusEl.append(retry)
+    }
+    listEl.append(statusEl)
+  }
 
-      const visitor = document.createElement('p')
-      visitor.className = 'guestbook-overlay__entry-visitor'
-      visitor.textContent = entry.alias
+  function appendEntries(page: GuestbookEntry[]): void {
+    if (!listEl) return
+    const now = new Date()
+    for (const entry of page) {
+      if (entryIds.has(entry.awardId)) continue
+      entryIds.add(entry.awardId)
+      entries.push(entry)
+      listEl.insertBefore(buildEntry(entry, now), statusEl)
+    }
+  }
 
-      const time = document.createElement('p')
-      time.className = 'guestbook-overlay__entry-time'
-      time.textContent = formatEntryTime(entry.createdAt, now)
+  async function loadFirstPage(): Promise<void> {
+    const current = ++generation
+    const startedAt = Date.now()
+    loading = 'first'
+    loadError = null
+    renderStatus()
+    const result = await guestbookRepository.loadPage(null)
+    if (current !== generation) return
+    loading = null
+    if (!result.ok) {
+      // Keep showing earlier results rather than replacing real data with an error.
+      if (entries.length === 0) loadError = 'first'
+      renderStatus()
+      return
+    }
+    stats = result.page.stats
+    nextCursor = result.page.nextCursor
+    loadedAt = Date.now()
+    // A cached page requested soon after a gift may not include it yet.
+    awardRecordedSinceLoad = startedAt - lastAwardRecordedAt < FIRST_PAGE_CACHE_MS
+    entries = []
+    entryIds.clear()
+    statusEl = null
+    listEl?.replaceChildren()
+    appendEntries(result.page.entries)
+    if (listEl) listEl.scrollTop = 0
+    renderStats()
+    renderStatus()
+    maybeLoadMore()
+  }
 
-      const text = document.createElement('p')
-      text.className = 'guestbook-overlay__entry-text'
-      text.append(buildEntrySentence(entry))
+  async function loadMore(): Promise<void> {
+    const cursor = nextCursor
+    if (!cursor || loading !== null) return
+    const current = generation
+    loading = 'more'
+    loadError = null
+    renderStatus()
+    const result = await guestbookRepository.loadPage(cursor)
+    if (current !== generation) return
+    loading = null
+    if (!result.ok) {
+      // A rejected cursor means starting over from the newest entries.
+      loadError = result.reason === 'invalid_cursor' ? 'cursor' : 'more'
+      renderStatus()
+      return
+    }
+    nextCursor = result.page.nextCursor
+    appendEntries(result.page.entries)
+    renderStatus()
+    maybeLoadMore()
+  }
 
-      li.append(visitor, time, text)
-      listEl.append(li)
+  /** Fetches older entries once the visitor scrolls within a screen of the end. */
+  function maybeLoadMore(): void {
+    if (!isOpen || !listEl || !nextCursor || loading !== null || loadError !== null) return
+    const remaining = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight
+    if (remaining <= Math.max(listEl.clientHeight, 120)) void loadMore()
+  }
+
+  function refreshIfStale(): void {
+    if (loading === 'first') return
+    const stale =
+      loadedAt === 0 ||
+      awardRecordedSinceLoad ||
+      Date.now() - loadedAt > GUESTBOOK_STALE_MS
+    if (stale) {
+      void loadFirstPage()
+    } else {
+      maybeLoadMore()
     }
   }
 
   function buildOverlay(): HTMLElement {
-    const stats = getGuestbookStats()
     const root = document.createElement('div')
     root.className = 'guestbook-overlay'
     root.dataset.open = 'false'
@@ -236,32 +425,21 @@ export function createGuestbookController(): GuestbookController {
     statsRow.setAttribute('role', 'group')
     statsRow.setAttribute('aria-label', 'Guestbook statistics')
 
-    const statItems: Array<{ value: string; label: string }> = [
-      {
-        value: formatVisitorCount(stats.visitorCount),
-        label: 'visitors',
-      },
-      {
-        value: `${stats.uniqueObjectsFound}/${stats.totalObjects}`,
-        label: 'objects found',
-      },
-      {
-        value: formatVisitorCount(stats.totalKnocks),
-        label: 'door knocks',
-      },
-    ]
+    const statLabels = ['visitors', 'gifts given', 'door knocks']
 
-    for (const item of statItems) {
+    statValueEls = []
+    for (const statLabel of statLabels) {
       const stat = document.createElement('div')
       stat.className = 'guestbook-overlay__stat'
       const value = document.createElement('span')
       value.className = 'guestbook-overlay__stat-value'
-      value.textContent = item.value
+      value.textContent = STAT_PLACEHOLDER
       const label = document.createElement('span')
       label.className = 'guestbook-overlay__stat-label'
-      label.textContent = item.label
+      label.textContent = statLabel
       stat.append(value, label)
       statsRow.append(stat)
+      statValueEls.push(value)
     }
 
     header.append(title, subtitle, statsRow)
@@ -288,12 +466,12 @@ export function createGuestbookController(): GuestbookController {
     dimEl.addEventListener('click', onDimClick)
     close.addEventListener('click', onCloseClick)
     paperEl.addEventListener('click', onPaperClick)
+    list.addEventListener('scroll', onListScroll, { passive: true })
 
     return root
   }
 
   function buildNote(): HTMLButtonElement {
-    const stats = getGuestbookStats()
     const btn = document.createElement('button')
     btn.type = 'button'
     btn.className = 'guestbook-note'
@@ -320,7 +498,7 @@ export function createGuestbookController(): GuestbookController {
 
     const visitor = document.createElement('span')
     visitor.className = 'guestbook-note__visitor'
-    visitor.textContent = `You're visitor #${formatVisitorCount(stats.visitorCount)}`
+    noteVisitorEl = visitor
 
     copy.append(title, visitor)
     btn.append(art, copy)
@@ -350,6 +528,7 @@ export function createGuestbookController(): GuestbookController {
     overlay.setAttribute('aria-hidden', 'false')
     isOpen = true
     onOpenChange?.(true)
+    refreshIfStale()
 
     killActiveTimeline()
     gsap.set(dim, { opacity: 0 })
@@ -546,7 +725,10 @@ export function createGuestbookController(): GuestbookController {
         String(transitions.guestbookDimOpacity),
       )
       appRoot.appendChild(overlay)
-      renderList()
+      renderStats()
+      renderStatus()
+      unsubscribeVisitor = visitorSession.subscribeVisitor(renderNoteVisitor)
+      unsubscribeAwards = visitorSession.onAwardRecorded(onAwardRecorded)
 
       window.addEventListener('keydown', onKeyDown)
     },
@@ -555,6 +737,7 @@ export function createGuestbookController(): GuestbookController {
       if (!noteBtn) return
       clearAppearTimer()
       killActiveTimeline()
+      refreshIfStale()
 
       if (isOpen) {
         finishClose()
@@ -645,6 +828,12 @@ export function createGuestbookController(): GuestbookController {
 
     destroy() {
       this.reset()
+      generation += 1
+      unsubscribeVisitor?.()
+      unsubscribeVisitor = null
+      unsubscribeAwards?.()
+      unsubscribeAwards = null
+      listEl?.removeEventListener('scroll', onListScroll)
       window.removeEventListener('keydown', onKeyDown)
       noteBtn?.removeEventListener('click', onNoteClick)
       noteBtn?.removeEventListener('pointerdown', onNotePointerDown)
@@ -663,6 +852,9 @@ export function createGuestbookController(): GuestbookController {
       content = null
       closeBtn = null
       listEl = null
+      statusEl = null
+      noteVisitorEl = null
+      statValueEls = []
       appRoot = null
       doorViewport = null
       onOpenChange = null

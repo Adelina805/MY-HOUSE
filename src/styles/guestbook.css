@@ -394,6 +394,43 @@
   text-align: right;
 }
 
+/* Loading / empty / error row — same type as entries so states don't shift the page. */
+.guestbook-overlay__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  padding: 0.65rem 0;
+  font-family: system-ui, sans-serif;
+  font-size: clamp(0.75rem, 1.4vw, 0.9rem);
+  line-height: 1.35;
+  color: #444;
+  text-transform: lowercase;
+}
+
+.guestbook-overlay__status-text {
+  margin: 0;
+}
+
+.guestbook-overlay__retry {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1a1a1a;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-transform: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.guestbook-overlay__retry:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
 @media (max-width: 700px) {
   .guestbook-note {
     --guestbook-note-width-factor: 0.55;
