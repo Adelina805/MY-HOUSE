@@ -38,6 +38,8 @@
   box-sizing: border-box;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
   overflow: hidden;
+  container-type: inline-size;
+  container-name: guestbook-note;
 }
 
 .guestbook-note[data-visible='true'] {
@@ -87,7 +89,7 @@
   box-sizing: border-box;
   font-family: 'Some Time Later', 'Segoe Print', 'Comic Sans MS', system-ui,
     sans-serif;
-  font-size: clamp(0.75rem, 2vw, 1.05rem);
+  font-size: clamp(0.85rem, 9.5cqi, 2.25rem);
   font-weight: 400;
   line-height: 1.15;
   text-align: center;
@@ -105,7 +107,7 @@
   padding: 0;
   box-sizing: border-box;
   font-family: system-ui, sans-serif;
-  font-size: clamp(0.5rem, 1.2vw, 0.68rem);
+  font-size: clamp(0.55rem, 5.75cqi, 1.35rem);
   font-weight: 400;
   line-height: 1.2;
   text-align: center;
@@ -437,14 +439,6 @@
     --guestbook-note-top: 14%;
     min-width: 140px;
     max-width: 280px;
-  }
-
-  .guestbook-note__title {
-    font-size: clamp(0.9rem, 4.5vw, 1.2rem);
-  }
-
-  .guestbook-note__visitor {
-    font-size: clamp(0.55rem, 2.8vw, 0.72rem);
   }
 
   .guestbook-overlay {
