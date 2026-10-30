@@ -517,8 +517,8 @@ export function createGuestbookController(): GuestbookController {
 
     killActiveTimeline()
     gsap.set(dim, { opacity: 0 })
-    // Content stays hidden while the paper shell Flips so text is never scaled.
-    gsap.set(content, { opacity: 0 })
+    // Content and close stay hidden while the paper shell Flips so UI is never scaled.
+    gsap.set([content, closeBtn], { opacity: 0 })
 
     if (reduced) {
       gsap.set(paper, {
@@ -536,7 +536,7 @@ export function createGuestbookController(): GuestbookController {
       activeTimeline = tl
       tl.to(dim, { opacity: dimOpacity, duration, ease: 'power2.out' }, 0)
       tl.to(
-        content,
+        [content, closeBtn],
         { opacity: 1, duration: duration * 0.7, ease: 'power2.out' },
         duration * 0.25,
       )
@@ -587,14 +587,14 @@ export function createGuestbookController(): GuestbookController {
     )
     tl.to(dim, { opacity: dimOpacity, duration, ease: 'power2.out' }, 0)
     tl.to(
-      content,
+      [content, closeBtn],
       { opacity: 1, duration: duration * 0.4, ease: 'power2.out' },
       duration * 0.6,
     )
   }
 
   async function closeGuestbook(): Promise<void> {
-    if (!noteBtn || !overlay || !paper || !dim || !content) return
+    if (!noteBtn || !overlay || !paper || !dim || !content || !closeBtn) return
     if (!isOpen || isAnimating) return
 
     isAnimating = true
@@ -612,7 +612,11 @@ export function createGuestbookController(): GuestbookController {
         },
       })
       activeTimeline = tl
-      tl.to(content, { opacity: 0, duration: duration * 0.5, ease: 'power2.in' }, 0)
+      tl.to(
+        [content, closeBtn],
+        { opacity: 0, duration: duration * 0.5, ease: 'power2.in' },
+        0,
+      )
       tl.to(dim, { opacity: 0, duration, ease: 'power2.in' }, 0)
       tl.to(paper, { opacity: 0, duration, ease: 'power2.in' }, 0)
       return
@@ -628,7 +632,11 @@ export function createGuestbookController(): GuestbookController {
     })
     activeTimeline = tl
 
-    tl.to(content, { opacity: 0, duration: duration * 0.35, ease: 'power2.in' }, 0)
+    tl.to(
+      [content, closeBtn],
+      { opacity: 0, duration: duration * 0.35, ease: 'power2.in' },
+      0,
+    )
     tl.to(dim, { opacity: 0, duration, ease: 'power2.inOut' }, 0)
 
     const state = Flip.getState(paper)
@@ -673,7 +681,7 @@ export function createGuestbookController(): GuestbookController {
 
     clearPaperLayoutProps(0)
     gsap.set(dim, { opacity: 0 })
-    gsap.set(content, { opacity: 0 })
+    gsap.set([content, closeBtn], { opacity: 0 })
 
     onOpenChange?.(false)
 
@@ -784,6 +792,7 @@ export function createGuestbookController(): GuestbookController {
       clearPaperLayoutProps(0)
       if (dim) gsap.set(dim, { opacity: 0 })
       if (content) gsap.set(content, { opacity: 0 })
+      if (closeBtn) gsap.set(closeBtn, { opacity: 0 })
       if (noteBtn) {
         noteBtn.dataset.open = 'false'
         noteBtn.setAttribute('aria-expanded', 'false')
@@ -805,6 +814,7 @@ export function createGuestbookController(): GuestbookController {
         clearPaperLayoutProps(0)
         if (dim) gsap.set(dim, { opacity: 0 })
         if (content) gsap.set(content, { opacity: 0 })
+        if (closeBtn) gsap.set(closeBtn, { opacity: 0 })
         onOpenChange?.(false)
       }
       hideNoteImmediate()
