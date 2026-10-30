@@ -5,7 +5,7 @@ import {
   formatPrizeAnnouncement,
   type SelectedPrize,
 } from '../config/prizeCatalog'
-import { registerMediaElement, restoreMediaMute } from './soundState'
+import { playSfx, stopSfx } from './soundState'
 
 const cfg = candyBowlConfig.announcement
 
@@ -88,32 +88,13 @@ export function createPrizeAnnouncement(
   let rotationTween: gsap.core.Tween | null = null
   let playing = false
   let resolvePlay: (() => void) | null = null
-  let prizeAudio: HTMLAudioElement | null = null
-  let unregisterPrizeAudio: (() => void) | null = null
-
-  function ensurePrizeAudio(): HTMLAudioElement | null {
-    const src = assets.audio.prize
-    if (!src) return null
-    if (!prizeAudio) {
-      prizeAudio = new Audio(src)
-      prizeAudio.volume = 0.15
-      unregisterPrizeAudio = registerMediaElement(prizeAudio)
-    }
-    return prizeAudio
-  }
-
   function playPrizeSound(): void {
-    const audio = ensurePrizeAudio()
-    if (!audio) return
-    restoreMediaMute(audio)
-    audio.currentTime = 0
-    void audio.play().catch(() => {})
+    stopSfx('prize')
+    playSfx('prize')
   }
 
   function stopPrizeSound(): void {
-    if (!prizeAudio) return
-    prizeAudio.pause()
-    prizeAudio.currentTime = 0
+    stopSfx('prize')
   }
 
   function stopRotation(): void {
@@ -281,9 +262,6 @@ export function createPrizeAnnouncement(
 
   function destroy(): void {
     reset()
-    unregisterPrizeAudio?.()
-    unregisterPrizeAudio = null
-    prizeAudio = null
     burstWrap.remove()
     root.remove()
   }

@@ -13,8 +13,9 @@ import {
 import type { CuppedRevealElements } from '../../core/handsOverlay'
 import { preloadPrizeImages } from '../../core/preloadAssets'
 import {
-  registerMediaElement,
-  restoreMediaMute,
+  ensureAudioUnlocked,
+  playSfx,
+  stopSfx,
 } from '../../core/soundState'
 
 /** @deprecated Alias — prefer SelectedPrize. */
@@ -280,26 +281,12 @@ export function createCandyRummageController(
   let grabFinishTimer: ReturnType<typeof setTimeout> | null = null
   let grabStarted = false
 
-  let rummageAudio: HTMLAudioElement | null = null
-  let unregisterRummageAudio: (() => void) | null = null
   let rummageActivityUntil = 0
   let rummageActivityTimer: ReturnType<typeof setTimeout> | null = null
   let lastActivityClient: { x: number; y: number } | null = null
   const RUMMAGE_ACTIVITY_MS = 120
 
   const reduced = prefersReducedMotion()
-
-  function ensureRummageAudio(): HTMLAudioElement | null {
-    const src = assets.audio.rummage
-    if (!src) return null
-    if (!rummageAudio) {
-      rummageAudio = new Audio(src)
-      rummageAudio.loop = true
-      rummageAudio.volume = 0.05
-      unregisterRummageAudio = registerMediaElement(rummageAudio)
-    }
-    return rummageAudio
-  }
 
   function clearRummageActivityTimer(): void {
     if (rummageActivityTimer !== null) {
@@ -312,25 +299,21 @@ export function createCandyRummageController(
     clearRummageActivityTimer()
     rummageActivityUntil = 0
     lastActivityClient = null
-    if (!rummageAudio) return
-    rummageAudio.pause()
+    stopSfx('rummage')
   }
 
   function playRummageAudioFor(ms: number): void {
-    const audio = ensureRummageAudio()
-    if (!audio) return
+    if (!assets.audio.rummage) return
 
     rummageActivityUntil = performance.now() + ms
-    restoreMediaMute(audio)
-    if (audio.paused) {
-      void audio.play().catch(() => {})
-    }
+    ensureAudioUnlocked()
+    playSfx('rummage')
 
     clearRummageActivityTimer()
     rummageActivityTimer = setTimeout(() => {
       rummageActivityTimer = null
       if (performance.now() >= rummageActivityUntil) {
-        rummageAudio?.pause()
+        stopSfx('rummage')
       }
     }, ms)
   }
@@ -365,12 +348,14 @@ export function createCandyRummageController(
     if (!pointInElement(event.clientX, event.clientY, bowl)) return
 
     event.preventDefault()
+    ensureAudioUnlocked()
     beginPlunge()
   }
 
   const onPointerDownAnywhere = (event: PointerEvent): void => {
     if (state !== 'rummaging') return
     if (event.button !== 0) return
+    ensureAudioUnlocked()
     pointerClient = { x: event.clientX, y: event.clientY }
     noteRummageActivity()
 
@@ -541,6 +526,7 @@ export function createCandyRummageController(
     if (!bowl) return
 
     state = 'plunging'
+    ensureAudioUnlocked()
     onPlungeStart?.()
     startRummageAudioForPlunge()
     prepareHandsForControl()
@@ -1384,9 +1370,6 @@ export function createCandyRummageController(
       state = 'idle'
       lastMid = null
       stopRummageAudio()
-      unregisterRummageAudio?.()
-      unregisterRummageAudio = null
-      rummageAudio = null
       clearSessionPrize()
       clearPendingBowlPrizes()
       leftHand.style.visibility = ''

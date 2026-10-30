@@ -5,7 +5,7 @@ import { transitions } from '../config/transitions'
 import type { PublicVisitor } from '../data/apiContract'
 import { guestbookRepository, visitorSession } from '../data/backend'
 import type { GuestbookEntry, GuestbookStats } from '../data/guestbookRepository'
-import { registerMediaElement, restoreMediaMute } from './soundState'
+import { ensureAudioUnlocked, playSfx } from './soundState'
 
 gsap.registerPlugin(Flip)
 
@@ -107,8 +107,6 @@ export function createGuestbookController(): GuestbookController {
   let closeBtn: HTMLButtonElement | null = null
   let listEl: HTMLElement | null = null
   let appearTimer: ReturnType<typeof setTimeout> | null = null
-  let paperAudio: HTMLAudioElement | null = null
-  let unregisterPaperAudio: (() => void) | null = null
   let onOpenChange: ((open: boolean) => void) | null = null
   let isOpen = false
   let isAnimating = false
@@ -182,22 +180,9 @@ export function createGuestbookController(): GuestbookController {
     }
   }
 
-  function ensurePaperAudio(): HTMLAudioElement | null {
-    const src = assets.audio.paper
-    if (!src) return null
-    if (!paperAudio) {
-      paperAudio = new Audio(src)
-      unregisterPaperAudio = registerMediaElement(paperAudio)
-    }
-    return paperAudio
-  }
-
   function playPaperSound(): void {
-    const audio = ensurePaperAudio()
-    if (!audio) return
-    restoreMediaMute(audio)
-    audio.currentTime = 0
-    void audio.play().catch(() => {})
+    ensureAudioUnlocked()
+    playSfx('paper')
   }
 
   function clearAppearTimer(): void {
@@ -842,9 +827,6 @@ export function createGuestbookController(): GuestbookController {
       paper?.removeEventListener('click', onPaperClick)
       noteBtn?.remove()
       overlay?.remove()
-      unregisterPaperAudio?.()
-      unregisterPaperAudio = null
-      paperAudio = null
       noteBtn = null
       overlay = null
       dim = null

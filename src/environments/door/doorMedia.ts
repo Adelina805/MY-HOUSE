@@ -54,6 +54,8 @@ export class DoorMediaController {
   private unregisterGreetingSound: (() => void) | null = null
   private unregisterGoodbyeSound: (() => void) | null = null
   private skipActivePlayback: (() => void) | null = null
+  /** Bumps when a playVideo session ends so late play()/retry promises are no-ops. */
+  private playbackGeneration = 0
   private onSkipVisibleChange: ((visible: boolean) => void) | null = null
   private onCaptionVideoChange:
     | ((video: HTMLVideoElement | null, vttUrl: string | null) => void)
@@ -486,11 +488,15 @@ export class DoorMediaController {
     },
   ): Promise<void> {
     return new Promise((resolve) => {
+      const generation = ++this.playbackGeneration
       let finished = false
       let startWatchdog = 0
       let playbackWatchdog = 0
       let canplayRetryTimer = 0
       let forcedMute = false
+
+      const isStale = (): boolean =>
+        finished || generation !== this.playbackGeneration
 
       const cleanup = () => {
         window.clearTimeout(startWatchdog)
@@ -505,6 +511,8 @@ export class DoorMediaController {
       const finish = () => {
         if (finished) return
         finished = true
+        // Invalidate late play()/retry promises from this session.
+        this.playbackGeneration += 1
         cleanup()
         this.skipActivePlayback = null
         this.setSkipVisible(false)
@@ -515,9 +523,13 @@ export class DoorMediaController {
 
       this.skipActivePlayback = finish
 
-      const onEnded = () => finish()
+      const onEnded = () => {
+        if (isStale()) return
+        finish()
+      }
 
       const onError = () => {
+        if (isStale()) return
         console.warn('Door video failed to play:', src)
         finish()
       }
@@ -525,12 +537,14 @@ export class DoorMediaController {
       const armPlaybackWatchdog = () => {
         window.clearTimeout(playbackWatchdog)
         playbackWatchdog = window.setTimeout(() => {
+          if (isStale()) return
           console.warn('Door video playback timed out:', src)
           finish()
         }, this.playbackDeadlineMs(video))
       }
 
       const onPlaying = () => {
+        if (isStale()) return
         window.clearTimeout(startWatchdog)
         options?.onPlaying?.()
         this.setSkipVisible(true)
@@ -539,6 +553,8 @@ export class DoorMediaController {
       }
 
       const playWithMuteFallback = (): void => {
+        if (isStale()) return
+
         options?.markPrimeSettled?.()
         if (!forcedMute) {
           restoreMediaMute(video)
@@ -549,43 +565,66 @@ export class DoorMediaController {
         const playPromise = video.play()
         if (!playPromise) return
 
-        void playPromise.catch((error: unknown) => {
-          if (finished) return
+        void playPromise
+          .then(() => {
+            // Late resolve after skip/finish — ensure we stay paused.
+            if (isStale()) {
+              video.pause()
+            }
+          })
+          .catch((error: unknown) => {
+            if (isStale()) return
 
-          // iOS/Safari often blocks unmuted play after async gaps; muted is allowed.
-          if (!forcedMute && !isSoundMuted() && isAutoplayBlocked(error)) {
-            forcedMute = true
-            video.muted = true
-            void video
-              .play()
-              .then(() => {
-                // Stay muted — unmuting without a gesture pauses on iOS.
-                // Sound toggle is a user gesture and will sync unmute later.
-              })
-              .catch(() => scheduleCanplayRetry())
-            return
-          }
+            // iOS/Safari often blocks unmuted play after async gaps; muted is allowed.
+            if (!forcedMute && !isSoundMuted() && isAutoplayBlocked(error)) {
+              forcedMute = true
+              video.muted = true
+              void video
+                .play()
+                .then(() => {
+                  if (isStale()) {
+                    video.pause()
+                    return
+                  }
+                  // Stay muted — unmuting without a gesture pauses on iOS.
+                  // Sound toggle is a user gesture and will sync unmute later.
+                })
+                .catch(() => {
+                  if (isStale()) return
+                  scheduleCanplayRetry()
+                })
+              return
+            }
 
-          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-            void video.play().catch(() => onError())
-            return
-          }
+            if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+              void video
+                .play()
+                .then(() => {
+                  if (isStale()) video.pause()
+                })
+                .catch(() => {
+                  if (!isStale()) onError()
+                })
+              return
+            }
 
-          scheduleCanplayRetry()
-        })
+            scheduleCanplayRetry()
+          })
       }
 
       const scheduleCanplayRetry = () => {
+        if (isStale()) return
         window.clearTimeout(canplayRetryTimer)
         video.removeEventListener('canplay', onCanplayRetry)
-        canplayRetryTimer = window.setTimeout(
-          () => onError(),
-          CANPLAY_RETRY_TIMEOUT_MS,
-        )
+        canplayRetryTimer = window.setTimeout(() => {
+          if (isStale()) return
+          onError()
+        }, CANPLAY_RETRY_TIMEOUT_MS)
         video.addEventListener('canplay', onCanplayRetry)
       }
 
       const onCanplayRetry = () => {
+        if (isStale()) return
         window.clearTimeout(canplayRetryTimer)
         video.removeEventListener('canplay', onCanplayRetry)
         playWithMuteFallback()
@@ -596,6 +635,7 @@ export class DoorMediaController {
       video.addEventListener('playing', onPlaying)
 
       startWatchdog = window.setTimeout(() => {
+        if (isStale()) return
         console.warn('Door video never started playing:', src)
         finish()
       }, PLAY_START_TIMEOUT_MS)

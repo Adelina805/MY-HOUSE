@@ -1,5 +1,9 @@
 import { assets } from '../../config/assets'
-import { registerMediaElement, restoreMediaMute } from '../../core/soundState'
+import {
+  ensureAudioUnlocked,
+  playSfx,
+  stopSfx,
+} from '../../core/soundState'
 import { movement } from '../../config/movement'
 import type { KnockPoint } from '../../core/handsKnockAnimation'
 import { DoorMediaController } from './doorMedia'
@@ -88,26 +92,8 @@ export function createDoorEnvironment(): DoorEnvironment {
   let restartBtn: HTMLButtonElement | null = null
   let onKnock: ((point: KnockPoint) => void) | null = null
   let onRestart: (() => void) | null = null
-  const knockAudioPool: HTMLAudioElement[] = []
-  const knockAudioUnregister: (() => void)[] = []
-  const KNOCK_AUDIO_POOL_SIZE = 5
-
   const playKnockSound = (): void => {
-    const src = assets.audio.knock
-    if (!src) return
-
-    while (knockAudioPool.length < KNOCK_AUDIO_POOL_SIZE) {
-      const audio = new Audio(src)
-      knockAudioUnregister.push(registerMediaElement(audio))
-      knockAudioPool.push(audio)
-    }
-
-    const idle =
-      knockAudioPool.find((audio) => audio.paused || audio.ended) ??
-      knockAudioPool[0]
-    restoreMediaMute(idle)
-    idle.currentTime = 0
-    void idle.play().catch(() => {})
+    playSfx('knock')
   }
 
   return {
@@ -187,6 +173,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       knockBtn.addEventListener('pointerdown', (event) => {
         if (event.button !== 0) return
         suppressClickKnock = true
+        ensureAudioUnlocked()
         media?.primeGreetingPlayback()
         onKnock?.(knockPointFromEvent(knockBtn, event))
       })
@@ -195,6 +182,7 @@ export function createDoorEnvironment(): DoorEnvironment {
           suppressClickKnock = false
           return
         }
+        ensureAudioUnlocked()
         media?.primeGreetingPlayback()
         onKnock?.(knockPointFromEvent(knockBtn, event))
       })
@@ -212,11 +200,7 @@ export function createDoorEnvironment(): DoorEnvironment {
       restartBtn = null
       mediaRoot = null
       viewportEl = null
-      for (const unregister of knockAudioUnregister) {
-        unregister()
-      }
-      knockAudioUnregister.length = 0
-      knockAudioPool.length = 0
+      stopSfx('knock')
       scene = null
       root?.remove()
       root = null

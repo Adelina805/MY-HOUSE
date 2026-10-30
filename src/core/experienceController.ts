@@ -36,6 +36,7 @@ import {
 } from './guestbookController'
 import { getSessionPrize } from '../config/prizeCatalog'
 import { visitorSession } from '../data/backend'
+import { stopSfx } from './soundState'
 import type { ExperienceState } from './types'
 import type { KnockPoint } from '../environments/door/doorEnvironment'
 
@@ -487,6 +488,7 @@ export class ExperienceController {
   private handleSkip(): void {
     if (this.state !== 'greeting' && this.state !== 'goodbye') return
     this.door.skipActiveVideo()
+    stopSfx('knock')
   }
 
   private async handleRestart(): Promise<void> {
