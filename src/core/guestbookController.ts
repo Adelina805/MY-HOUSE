@@ -5,6 +5,7 @@ import { transitions } from '../config/transitions'
 import type { PublicVisitor } from '../data/apiContract'
 import { guestbookRepository, visitorSession } from '../data/backend'
 import type { GuestbookEntry, GuestbookStats } from '../data/guestbookRepository'
+import { guestbookEntryPrizeParts } from './guestbookEntryCopy'
 import { ensureAudioUnlocked, playSfx } from './soundState'
 
 gsap.registerPlugin(Flip)
@@ -65,33 +66,17 @@ function formatEntryTime(createdAt: string, now: Date): string {
   return `${month}/${day}/${year}`
 }
 
-/** "an apple", "a USB flash drive", "some tacos". */
-function articleForObject(name: string): 'a' | 'an' | 'some' {
-  const trimmed = name.trim()
-  if (/[^s]s$/i.test(trimmed) && !/\bof\b/i.test(trimmed)) return 'some'
-  // Initialisms are read letter by letter: "an MRI", "a USB".
-  if (/^[A-Z]{2,}\b/.test(trimmed)) return /^[AEFHILMNORSX]/.test(trimmed) ? 'an' : 'a'
-  return /^[aeiou]/i.test(trimmed) ? 'an' : 'a'
-}
-
-/** Varies the wording between entries while keeping each gift's sentence stable across loads. */
-function entryAction(awardId: string): 'received' | 'got' {
-  return Number.parseInt(awardId.slice(-1), 16) % 2 === 0 ? 'received' : 'got'
-}
-
 function buildEntrySentence(entry: GuestbookEntry): DocumentFragment {
+  const { action, article, boldText, location } = guestbookEntryPrizeParts(entry)
   const frag = document.createDocumentFragment()
-  frag.append(
-    document.createTextNode(
-      `${entryAction(entry.awardId)} ${articleForObject(entry.objectName)} `,
-    ),
-  )
+  const prefix = article ? `${action} ${article} ` : `${action} `
+  frag.append(document.createTextNode(prefix))
   const object = document.createElement('strong')
   object.className = 'guestbook-overlay__entry-object'
-  object.textContent = entry.objectName
+  object.textContent = boldText
   frag.append(object)
-  if (entry.location) {
-    frag.append(document.createTextNode(` from ${entry.location}`))
+  if (location) {
+    frag.append(document.createTextNode(` from ${location}`))
   }
   return frag
 }

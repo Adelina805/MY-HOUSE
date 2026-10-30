@@ -54,6 +54,14 @@ Deno.test('loads the first page with the page size and older pages with the curs
   assertEquals(queries, [{ limit: '20' }, { limit: '20', cursor: 'cursor-2' }])
 })
 
+Deno.test('keeps each entry adjective through frontend mapping', async () => {
+  const { repository } = setup([ok(PAGE)])
+  const result = await repository.loadPage()
+  assertEquals(result.ok, true)
+  if (!result.ok) return
+  assertEquals(result.page.entries[0]?.adjective, 'crisp')
+})
+
 Deno.test('a rejected cursor is reported so the caller can start over', async () => {
   const { repository, queries } = setup([fail(400, 'invalid_cursor')])
   assertEquals(await repository.loadPage('stale'), { ok: false, reason: 'invalid_cursor' })
