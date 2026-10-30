@@ -48,8 +48,8 @@ export const candyBowlConfig = {
     },
   },
   objects: {
-    /** Décor sample size: random subset from the catalog (capped by catalog length at spawn). */
-    count: 60,
+    /** Show every catalog prize in the bowl (capped by catalog length at spawn). */
+    count: 100,
     /** Fraction of objects drawn in front of the hands (rest stay behind). */
     frontLayerChance: 0.5,
     /** Uniform box size for every prize image (assets are pre-cropped equally). */
