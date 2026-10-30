@@ -57,6 +57,8 @@ export class ExperienceController {
   private knockController: RightHandKnockController | null = null
   private greetingInactivityTimer: ReturnType<typeof setTimeout> | null = null
   private candyAutoGoodbyeTimer: ReturnType<typeof setTimeout> | null = null
+  /** Re-attempt leaveCandy after an in-progress grab finishes. */
+  private leaveCandyAfterGrabTimer: ReturnType<typeof setTimeout> | null = null
   private greetingTransitionStarted = false
   private hands: HandsOverlay | null = null
   private knockStatusEl: HTMLElement | null = null
@@ -213,8 +215,9 @@ export class ExperienceController {
       },
       onPrizeRevealed: (prize) => {
         this.clearCandyAutoGoodbyeTimer()
-        void this.playPrizeAnnouncementThenGoodbye(prize)
+        this.clearLeaveCandyAfterGrabTimer()
         visitorSession.recordAward(prize)
+        void this.playPrizeAnnouncementThenGoodbye(prize)
       },
     })
     registerCandyRespawn(() => {
@@ -275,6 +278,7 @@ export class ExperienceController {
     gsap.killTweensOf(this.camera)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
+    this.clearLeaveCandyAfterGrabTimer()
     this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
     this.prizeAnnouncement?.destroy()
@@ -314,6 +318,24 @@ export class ExperienceController {
       clearTimeout(this.candyAutoGoodbyeTimer)
       this.candyAutoGoodbyeTimer = null
     }
+  }
+
+  private clearLeaveCandyAfterGrabTimer(): void {
+    if (this.leaveCandyAfterGrabTimer !== null) {
+      clearTimeout(this.leaveCandyAfterGrabTimer)
+      this.leaveCandyAfterGrabTimer = null
+    }
+  }
+
+  /** If leaveCandy hit mid-grab, retry once the grab outro window should have finished. */
+  private scheduleLeaveCandyAfterGrab(): void {
+    if (this.leaveCandyAfterGrabTimer !== null) return
+    const reveal = candyBowlConfig.reveal
+    const delayMs = Math.max((reveal.grabDuration + reveal.cuppedFadeIn) * 1000, 160) + 80
+    this.leaveCandyAfterGrabTimer = setTimeout(() => {
+      this.leaveCandyAfterGrabTimer = null
+      void this.leaveCandyForGoodbye()
+    }, delayMs)
   }
 
   /**
@@ -457,9 +479,14 @@ export class ExperienceController {
 
   private async leaveCandyForGoodbye(): Promise<void> {
     const rummageState = this.candyRummage?.getState()
-    if (rummageState === 'grabbing') return
+    if (rummageState === 'grabbing') {
+      // Don't drop auto-goodbye / take intents that arrive mid-grab.
+      this.scheduleLeaveCandyAfterGrab()
+      return
+    }
     if (this.busy || this.state !== 'waiting-for-candy') return
     this.clearCandyAutoGoodbyeTimer()
+    this.clearLeaveCandyAfterGrabTimer()
 
     if (!this.candyRummage?.isCuppedRevealActive()) {
       const started = this.candyRummage?.beginCuppedOutroForGoodbye() ?? false
@@ -468,6 +495,9 @@ export class ExperienceController {
         return
       }
     }
+
+    // Belt-and-suspenders: record before the door crossfade so detach races cannot skip the gift.
+    this.candyRummage?.ensurePrizeRevealed()
 
     this.busy = true
     this.candy.setInteractive(false)
@@ -511,6 +541,7 @@ export class ExperienceController {
     this.door.setKnockEnabled(true)
     this.clearGreetingInactivityTimer()
     this.clearCandyAutoGoodbyeTimer()
+    this.clearLeaveCandyAfterGrabTimer()
     this.clearCuppedAutoDismissTimer()
     this.unbindCuppedDismissOnTap()
     this.greetingTransitionStarted = false

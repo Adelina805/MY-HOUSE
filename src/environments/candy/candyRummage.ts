@@ -12,6 +12,7 @@ import {
 } from '../../config/prizeCatalog'
 import type { CuppedRevealElements } from '../../core/handsOverlay'
 import { preloadPrizeImages } from '../../core/preloadAssets'
+import { createPrizeRevealGate } from '../../core/prizeRevealNotify'
 import {
   ensureAudioUnlocked,
   playSfx,
@@ -59,6 +60,11 @@ export interface CandyRummageController {
   commitCuppedReveal(): void
   /** Idle / auto-goodbye path — cupped outro with fallback prize, then `onPrizeRevealed`. */
   beginCuppedOutroForGoodbye(): boolean
+  /**
+   * Notify `onPrizeRevealed` once for this visit (idempotent). Call before the
+   * candy→door transition so goodbye cannot complete without recording the gift.
+   */
+  ensurePrizeRevealed(prize?: Prize): void
 }
 
 type ObjectLayer = 'behind' | 'front'
@@ -280,6 +286,9 @@ export function createCandyRummageController(
   let grabRevealTimer: ReturnType<typeof setTimeout> | null = null
   let grabFinishTimer: ReturnType<typeof setTimeout> | null = null
   let grabStarted = false
+  const prizeReveal = createPrizeRevealGate<Prize>((prize) => {
+    onPrizeRevealed?.(prize)
+  })
 
   let rummageActivityUntil = 0
   let rummageActivityTimer: ReturnType<typeof setTimeout> | null = null
@@ -999,21 +1008,27 @@ export function createCandyRummageController(
     }
   }
 
+  function ensurePrizeRevealed(prize?: Prize): void {
+    prizeReveal.ensure(prize ?? ensureSessionPrize())
+  }
+
   function emitCuppedOutro(prize: Prize): void {
-    if (state === 'revealing') return
     clearGrabTimers()
     if (grabTimeline) {
       grabTimeline.kill()
       grabTimeline = null
     }
-    grabStarted = true
-    state = 'revealing'
-    leftHand.style.opacity = '0'
-    rightHand.style.opacity = '0'
-    leftHand.style.visibility = 'hidden'
-    rightHand.style.visibility = 'hidden'
-    commitCuppedReveal()
-    onPrizeRevealed?.(prize)
+    // UI/state transitions run once; notification is always attempted (idempotent).
+    if (state !== 'revealing') {
+      grabStarted = true
+      state = 'revealing'
+      leftHand.style.opacity = '0'
+      rightHand.style.opacity = '0'
+      leftHand.style.visibility = 'hidden'
+      rightHand.style.visibility = 'hidden'
+      commitCuppedReveal()
+    }
+    ensurePrizeRevealed(prize)
   }
 
   function finishGrabReveal(prize: Prize): void {
@@ -1369,6 +1384,7 @@ export function createCandyRummageController(
       objects = []
       state = 'idle'
       lastMid = null
+      prizeReveal.reset()
       stopRummageAudio()
       clearSessionPrize()
       clearPendingBowlPrizes()
@@ -1377,6 +1393,14 @@ export function createCandyRummageController(
     },
 
     detachRummageForGoodbye(): void {
+      // Cancel pending grab/idle outro timers before forcing revealing — otherwise
+      // a late emitCuppedOutro would have historically no-op'd without recording.
+      const hadPendingOutro =
+        grabRevealTimer !== null ||
+        grabFinishTimer !== null ||
+        state === 'grabbing' ||
+        isCuppedRevealActive()
+      clearGrabTimers()
       unbindListeners()
       clearRummageHands()
       clearObjectLayers()
@@ -1392,12 +1416,16 @@ export function createCandyRummageController(
       }
       leftHand.style.visibility = 'hidden'
       rightHand.style.visibility = 'hidden'
+      if (hadPendingOutro || getSessionPrize() !== null) {
+        ensurePrizeRevealed()
+      }
     },
 
     reset(): void {
       this.dispose()
       clearObjectLayers()
       state = 'idle'
+      prizeReveal.reset()
       clearSessionPrize()
       clearPendingBowlPrizes()
     },
@@ -1439,6 +1467,10 @@ export function createCandyRummageController(
 
     beginCuppedOutroForGoodbye(): boolean {
       return beginCuppedOutroForGoodbye()
+    },
+
+    ensurePrizeRevealed(prize?: Prize): void {
+      ensurePrizeRevealed(prize)
     },
   }
 }
