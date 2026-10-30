@@ -7,13 +7,15 @@
   --prize-announce-label-size: clamp(0.7rem, 2.1vw, 0.95rem);
   --prize-announce-name-size: clamp(1.85rem, 7.2vw, 3.75rem);
   --prize-announce-from-size: clamp(0.85rem, 2.6vw, 1.15rem);
-  --prize-announce-text-top: clamp(8%, 12vh, 18%);
+  /* Anchor from the top of the viewport. */
+  --prize-announce-text-top: 10%;
   --prize-announce-text-max: min(92%, 36rem);
   --prize-announce-gap: clamp(1.05rem, 2.8vh, 1.75rem);
 
   position: absolute;
   inset: 0;
-  z-index: 1;
+  /* Above cupped-persist (12) so copy sits over the burst. */
+  z-index: 13;
   overflow: hidden;
   pointer-events: none;
 }
@@ -77,7 +79,6 @@
   color: #000;
   pointer-events: none;
   padding-inline: 0.5rem;
-  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .prize-announcement__label {
@@ -149,7 +150,7 @@
     --prize-announce-label-size: clamp(0.65rem, 3.4vw, 0.85rem);
     --prize-announce-name-size: clamp(1.65rem, 9.5vw, 2.65rem);
     --prize-announce-from-size: clamp(0.8rem, 3.6vw, 1.05rem);
-    --prize-announce-text-top: clamp(10%, 14vh, 20%);
+    --prize-announce-text-top: 10%;
     --prize-announce-text-max: min(94%, 22rem);
     --prize-announce-gap: clamp(1.15rem, 3.1vh, 1.7rem);
   }
@@ -169,7 +170,7 @@
 
 @media (min-width: 481px) {
   .prize-announcement {
-    --prize-announce-text-top: clamp(6%, 10vh, 14%);
+    --prize-announce-text-top: 10%;
     --prize-announce-name-size: clamp(2.25rem, 5.5vw, 4.25rem);
   }
 }
