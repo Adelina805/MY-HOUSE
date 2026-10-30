@@ -228,6 +228,8 @@ export class DoorMediaController {
 
   showClosed(): void {
     this.invalidateGreetingPrime()
+    this.invalidateGoodbyePrime()
+    this.clearGhostPlayGuard()
     this.setMode('closed')
   }
 
@@ -340,6 +342,9 @@ export class DoorMediaController {
             markPrimeSettled: () => {
               this.goodbyePrimeSettled = true
             },
+            // Hide goodbye before pause/seek — iOS often snaps the visible
+            // frame on pause while data-mode is still 'goodbye'.
+            onBeforeSilence: () => this.setMode('closed'),
           },
         ),
         wait(deadline),
@@ -536,6 +541,7 @@ export class DoorMediaController {
       onPlaying?: () => void
       captionsUrl?: string
       markPrimeSettled?: () => void
+      onBeforeSilence?: () => void
     },
   ): Promise<void> {
     return new Promise((resolve) => {
@@ -569,6 +575,7 @@ export class DoorMediaController {
         this.skipActivePlayback = null
         this.setSkipVisible(false)
         this.clearCaptionVideo()
+        options?.onBeforeSilence?.()
         this.silenceAndPause(video)
         this.armGhostPlayGuard(video)
         resolve()

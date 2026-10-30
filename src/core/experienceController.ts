@@ -505,6 +505,8 @@ export class ExperienceController {
     this.candyRummage?.reset()
     this.candy.setHidden(true)
     this.candy.reset()
+    const doorScene = this.door.getSceneElement()
+    if (doorScene) gsap.killTweensOf(doorScene)
     this.door.resetToIdle()
     this.door.setKnockEnabled(true)
     this.clearGreetingInactivityTimer()
