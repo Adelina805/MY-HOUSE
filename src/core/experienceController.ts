@@ -108,12 +108,13 @@ export class ExperienceController {
       burstHost: hands.cuppedReveal.root,
     })
     this.prizeAnnouncement = prizeAnnouncement
-    // Wash + text inside hands overlay, below cupped hands / front objects.
+    // Wash below hands / front objects; text above cupped-persist.
     // Burst mounts inside cupped reveal so it stays centered behind the hands.
     hands.element.insertBefore(
       prizeAnnouncement.element,
       hands.objectsFrontRoot,
     )
+    hands.element.appendChild(prizeAnnouncement.textElement)
 
     const knockStatus = document.createElement('div')
     knockStatus.className = 'door__sr-only'

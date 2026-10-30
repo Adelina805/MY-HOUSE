@@ -1,9 +1,23 @@
 /* --------------------------------------------------------------------------
-   Prize announcement overlay — wash + text inside .hands-overlay.
+   Prize announcement overlay — wash + text as siblings inside .hands-overlay.
    Burst mounts inside .hands-overlay__cupped-reveal so it tracks the hands.
    Tune burst size via candyBowlConfig.announcement.burstSize.
    -------------------------------------------------------------------------- */
 .prize-announcement {
+  position: absolute;
+  inset: 0;
+  /* Behind hands (2) / objects (3) / cupped (4|12) — wash only. */
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.prize-announcement[hidden] {
+  display: none;
+}
+
+/* Sibling of wash inside .hands-overlay — above cupped-persist (12). */
+.prize-announcement__text-layer {
   --prize-announce-label-size: clamp(0.7rem, 2.1vw, 0.95rem);
   --prize-announce-name-size: clamp(1.85rem, 7.2vw, 3.75rem);
   --prize-announce-from-size: clamp(0.85rem, 2.6vw, 1.15rem);
@@ -14,13 +28,12 @@
 
   position: absolute;
   inset: 0;
-  /* Above cupped-persist (12) so copy sits over the burst. */
   z-index: 13;
   overflow: hidden;
   pointer-events: none;
 }
 
-.prize-announcement[hidden] {
+.prize-announcement__text-layer[hidden] {
   display: none;
 }
 
@@ -146,7 +159,7 @@
 }
 
 @media (max-width: 480px) {
-  .prize-announcement {
+  .prize-announcement__text-layer {
     --prize-announce-label-size: clamp(0.65rem, 3.4vw, 0.85rem);
     --prize-announce-name-size: clamp(1.65rem, 9.5vw, 2.65rem);
     --prize-announce-from-size: clamp(0.8rem, 3.6vw, 1.05rem);
@@ -169,7 +182,7 @@
 }
 
 @media (min-width: 481px) {
-  .prize-announcement {
+  .prize-announcement__text-layer {
     --prize-announce-text-top: 10%;
     --prize-announce-name-size: clamp(2.25rem, 5.5vw, 4.25rem);
   }

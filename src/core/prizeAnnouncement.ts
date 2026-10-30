@@ -19,7 +19,10 @@ export interface PrizeAnnouncementOptions {
 }
 
 export interface PrizeAnnouncement {
+  /** Wash + live region — mount below hands / front objects. */
   element: HTMLElement
+  /** Announcement copy — mount above cupped-persist (sibling of wash). */
+  textElement: HTMLElement
   /** Play the announcement for the locked session prize; resolves once when done. */
   play(prize: SelectedPrize): Promise<void>
   /** Hide immediately and kill timelines (scene teardown / restart). */
@@ -54,6 +57,11 @@ export function createPrizeAnnouncement(
   // Behind cupped hands image + prize inside the shared positioning box.
   options.burstHost.prepend(burstWrap)
 
+  const textLayer = document.createElement('div')
+  textLayer.className = 'prize-announcement__text-layer'
+  textLayer.hidden = true
+  textLayer.setAttribute('aria-hidden', 'true')
+
   const text = document.createElement('div')
   text.className = 'prize-announcement__text'
 
@@ -76,13 +84,14 @@ export function createPrizeAnnouncement(
   from.className = 'prize-announcement__from'
 
   text.append(label, name, from)
+  textLayer.appendChild(text)
 
   const live = document.createElement('div')
   live.className = 'prize-announcement__live'
   live.setAttribute('aria-live', 'polite')
   live.setAttribute('aria-atomic', 'true')
 
-  root.append(wash, text, live)
+  root.append(wash, live)
 
   let timeline: gsap.core.Timeline | null = null
   let rotationTween: gsap.core.Tween | null = null
@@ -110,6 +119,8 @@ export function createPrizeAnnouncement(
     root.hidden = true
     root.setAttribute('aria-hidden', 'true')
     root.classList.remove('prize-announcement--active')
+    textLayer.hidden = true
+    textLayer.setAttribute('aria-hidden', 'true')
     live.textContent = ''
     gsap.set([wash, burst, label, name, from], {
       clearProps: 'opacity,transform',
@@ -164,6 +175,9 @@ export function createPrizeAnnouncement(
     root.removeAttribute('hidden')
     root.setAttribute('aria-hidden', 'false')
     root.classList.add('prize-announcement--active')
+    textLayer.hidden = false
+    textLayer.removeAttribute('hidden')
+    textLayer.setAttribute('aria-hidden', 'false')
 
     const reduced = prefersReducedMotion()
     // Always hold the full configured total (including fade-out).
@@ -265,10 +279,12 @@ export function createPrizeAnnouncement(
     reset()
     burstWrap.remove()
     root.remove()
+    textLayer.remove()
   }
 
   return {
     element: root,
+    textElement: textLayer,
     play,
     reset,
     destroy,
