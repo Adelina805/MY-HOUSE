@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "catalog:generate": "node --experimental-strip-types scripts/generate-prize-catalog.ts",
+    "db:reset": "supabase db reset",
+    "test:db": "supabase test db",
+    "test:functions": "deno test --config supabase/functions/tests/deno.json --allow-env --allow-read supabase/functions/tests/unit",
+    "test:integration": "deno test --config supabase/functions/tests/deno.json --allow-env --allow-read --allow-run=supabase --allow-net=127.0.0.1:54321,127.0.0.1:54322,localhost:54321,localhost:54322 supabase/functions/tests/integration"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
