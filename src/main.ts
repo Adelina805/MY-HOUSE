@@ -15,6 +15,7 @@ import { applyCandyBowlDebug } from './core/candyBowlDebug'
 import { ExperienceController } from './core/experienceController'
 import { preloadBootImages, waitForNextPaint } from './core/preloadAssets'
 import { createSplashScreen, playSplashIntro } from './core/splashScreen'
+import { startVisitorSession } from './data/backend'
 
 inject()
 
@@ -43,6 +44,7 @@ function applyFrameTokens(): void {
 }
 
 async function boot(app: HTMLDivElement): Promise<void> {
+  startVisitorSession()
   applyFrameTokens()
   app.classList.add('app--booting')
 

@@ -11,7 +11,9 @@
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
     "test:functions": "deno test --config supabase/functions/tests/deno.json --allow-env --allow-read supabase/functions/tests/unit",
-    "test:integration": "deno test --config supabase/functions/tests/deno.json --allow-env --allow-read --allow-run=supabase --allow-net=127.0.0.1:54321,127.0.0.1:54322,localhost:54321,localhost:54322 supabase/functions/tests/integration"
+    "test:integration": "deno test --config supabase/functions/tests/deno.json --allow-env --allow-read --allow-run=supabase --allow-net=127.0.0.1:54321,127.0.0.1:54322,localhost:54321,localhost:54322 supabase/functions/tests/integration",
+    "test:frontend": "deno test --config tests/frontend/deno.json tests/frontend/unit",
+    "test:frontend:integration": "deno test --config tests/frontend/deno.json --allow-env --allow-read --allow-run=supabase --allow-net=127.0.0.1:54321,127.0.0.1:54322,localhost:54321,localhost:54322 tests/frontend/integration"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

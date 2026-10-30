@@ -35,6 +35,7 @@ import {
   type GuestbookController,
 } from './guestbookController'
 import { getSessionPrize } from '../config/prizeCatalog'
+import { visitorSession } from '../data/backend'
 import type { ExperienceState } from './types'
 import type { KnockPoint } from '../environments/door/doorEnvironment'
 
@@ -211,6 +212,7 @@ export class ExperienceController {
       onPrizeRevealed: (prize) => {
         this.clearCandyAutoGoodbyeTimer()
         void this.playPrizeAnnouncementThenGoodbye(prize)
+        visitorSession.recordAward(prize)
       },
     })
     registerCandyRespawn(() => {
@@ -418,6 +420,7 @@ export class ExperienceController {
     }
 
     this.knockCount += 1
+    visitorSession.recordKnock()
     this.announceKnock(this.knockCount)
 
     controller.knock(point, () => {
