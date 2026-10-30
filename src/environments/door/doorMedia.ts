@@ -56,6 +56,13 @@ export class DoorMediaController {
   private skipActivePlayback: (() => void) | null = null
   /** Bumps when a playVideo session ends so late play()/retry promises are no-ops. */
   private playbackGeneration = 0
+  /** Brief listener that re-silences iOS ghost `playing` after skip/abort. */
+  private ghostPlayGuard: {
+    video: HTMLVideoElement
+    generation: number
+    timer: number
+    onPlaying: () => void
+  } | null = null
   private onSkipVisibleChange: ((visible: boolean) => void) | null = null
   private onCaptionVideoChange:
     | ((video: HTMLVideoElement | null, vttUrl: string | null) => void)
@@ -207,6 +214,9 @@ export class DoorMediaController {
 
   requestSkip(): void {
     this.skipActivePlayback?.()
+    // iOS can keep decoding audio after pause if a pending play() settles late.
+    this.silenceAndPause(this.greetingVideo)
+    this.silenceAndPause(this.goodbyeVideo)
   }
 
   setMode(mode: DoorMediaMode): void {
@@ -242,14 +252,14 @@ export class DoorMediaController {
   }
 
   holdGreetingEndFrame(): void {
-    this.greetingVideo.pause()
+    this.silenceAndPause(this.greetingVideo)
     this.setMode('greeting-hold')
   }
 
   async playGreeting(): Promise<void> {
     this.greetingPlayInProgress = true
     this.invalidateGreetingPrime()
-    this.goodbyeVideo.pause()
+    this.silenceAndPause(this.goodbyeVideo)
     this.goodbyeVideo.currentTime = 0
 
     try {
@@ -288,6 +298,8 @@ export class DoorMediaController {
         wait(deadline),
       ])
 
+      // Deadline winning leaves playVideo alive — tear it down so retries cannot resume audio.
+      this.skipActivePlayback?.()
       this.holdGreetingEndFrame()
     } finally {
       this.greetingPlayInProgress = false
@@ -297,7 +309,7 @@ export class DoorMediaController {
   async playGoodbye(): Promise<void> {
     this.goodbyePlayInProgress = true
     this.invalidateGoodbyePrime()
-    this.greetingVideo.pause()
+    this.silenceAndPause(this.greetingVideo)
 
     try {
       const src = assets.door.goodbyeVideo
@@ -308,6 +320,7 @@ export class DoorMediaController {
       }
 
       const video = this.goodbyeVideo
+      restoreMediaMute(video)
       this.ensureGoodbyeSource(src)
       this.setMode('goodbye')
 
@@ -331,6 +344,7 @@ export class DoorMediaController {
         ),
         wait(deadline),
       ])
+      this.skipActivePlayback?.()
       this.setMode('closed')
     } finally {
       this.goodbyePlayInProgress = false
@@ -338,6 +352,7 @@ export class DoorMediaController {
   }
 
   destroy(): void {
+    this.clearGhostPlayGuard()
     this.clearCaptionVideo()
     this.setSkipVisible(false)
     this.skipActivePlayback = null
@@ -469,9 +484,45 @@ export class DoorMediaController {
     })
   }
 
+  /** Mute before pause — on iOS, pause alone often leaves audio running after a late play(). */
+  private silenceAndPause(video: HTMLVideoElement): void {
+    video.muted = true
+    video.pause()
+  }
+
+  private clearGhostPlayGuard(): void {
+    if (!this.ghostPlayGuard) return
+    window.clearTimeout(this.ghostPlayGuard.timer)
+    this.ghostPlayGuard.video.removeEventListener(
+      'playing',
+      this.ghostPlayGuard.onPlaying,
+    )
+    this.ghostPlayGuard = null
+  }
+
+  /**
+   * After skip/abort, iOS may fire `playing` from a pending play() that settled late.
+   * Re-silence for a short window without blocking the next intentional playback.
+   */
+  private armGhostPlayGuard(video: HTMLVideoElement): void {
+    this.clearGhostPlayGuard()
+    const generation = this.playbackGeneration
+    const onPlaying = (): void => {
+      if (generation !== this.playbackGeneration) return
+      this.silenceAndPause(video)
+    }
+    video.addEventListener('playing', onPlaying)
+    const timer = window.setTimeout(() => {
+      if (this.ghostPlayGuard?.onPlaying === onPlaying) {
+        this.clearGhostPlayGuard()
+      }
+    }, 2500)
+    this.ghostPlayGuard = { video, generation, timer, onPlaying }
+  }
+
   private pauseAllVideos(): void {
     for (const video of [this.greetingVideo, this.goodbyeVideo]) {
-      video.pause()
+      this.silenceAndPause(video)
       video.currentTime = 0
     }
   }
@@ -488,6 +539,7 @@ export class DoorMediaController {
     },
   ): Promise<void> {
     return new Promise((resolve) => {
+      this.clearGhostPlayGuard()
       const generation = ++this.playbackGeneration
       let finished = false
       let startWatchdog = 0
@@ -517,7 +569,8 @@ export class DoorMediaController {
         this.skipActivePlayback = null
         this.setSkipVisible(false)
         this.clearCaptionVideo()
-        video.pause()
+        this.silenceAndPause(video)
+        this.armGhostPlayGuard(video)
         resolve()
       }
 
@@ -567,9 +620,9 @@ export class DoorMediaController {
 
         void playPromise
           .then(() => {
-            // Late resolve after skip/finish — ensure we stay paused.
+            // Late resolve after skip/finish — kill audio that iOS may have restarted.
             if (isStale()) {
-              video.pause()
+              this.silenceAndPause(video)
             }
           })
           .catch((error: unknown) => {
@@ -583,7 +636,7 @@ export class DoorMediaController {
                 .play()
                 .then(() => {
                   if (isStale()) {
-                    video.pause()
+                    this.silenceAndPause(video)
                     return
                   }
                   // Stay muted — unmuting without a gesture pauses on iOS.
@@ -600,7 +653,7 @@ export class DoorMediaController {
               void video
                 .play()
                 .then(() => {
-                  if (isStale()) video.pause()
+                  if (isStale()) this.silenceAndPause(video)
                 })
                 .catch(() => {
                   if (!isStale()) onError()
