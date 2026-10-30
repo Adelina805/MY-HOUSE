@@ -257,6 +257,7 @@ export function createDoorEnvironment(): DoorEnvironment {
     applyFinishedState(): void {
       if (!root || !knockTarget || !restartBtn) return
       root.dataset.finished = 'true'
+      // No seek — seeking goodbye to 0 after ended flashes a frame on iOS.
       media?.showClosed()
       knockTarget.disabled = true
       restartBtn.hidden = false
@@ -266,7 +267,7 @@ export function createDoorEnvironment(): DoorEnvironment {
     resetToIdle(): void {
       if (!root || !knockTarget || !restartBtn) return
       root.dataset.finished = 'false'
-      media?.showClosed()
+      media?.showClosed({ resetPlayback: true })
       knockTarget.disabled = false
       restartBtn.hidden = true
       this.setRestartInteractive(true)
@@ -315,7 +316,7 @@ export function createDoorEnvironment(): DoorEnvironment {
     },
 
     clearGreetingHold(): void {
-      media?.showClosed()
+      media?.showClosed({ resetPlayback: true })
     },
 
     skipActiveVideo(): void {

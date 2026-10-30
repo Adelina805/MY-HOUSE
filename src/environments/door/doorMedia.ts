@@ -220,17 +220,25 @@ export class DoorMediaController {
   }
 
   setMode(mode: DoorMediaMode): void {
+    // Visual only — seeking/pausing here flashes a frame on iOS after goodbye ends.
     this.mediaRoot.dataset.mode = mode
-    if (mode === 'closed') {
-      this.pauseAllVideos()
-    }
   }
 
-  showClosed(): void {
+  /**
+   * Show the closed-door still. Pass `resetPlayback` when starting a new visit
+   * so videos seek to frame 0; omit it after goodbye so iOS does not flash.
+   */
+  showClosed(options?: { resetPlayback?: boolean }): void {
     this.invalidateGreetingPrime()
     this.invalidateGoodbyePrime()
     this.clearGhostPlayGuard()
     this.setMode('closed')
+    if (options?.resetPlayback) {
+      this.pauseAllVideos()
+      return
+    }
+    this.silenceAndPause(this.greetingVideo)
+    this.silenceAndPause(this.goodbyeVideo)
   }
 
   /**
@@ -342,8 +350,8 @@ export class DoorMediaController {
             markPrimeSettled: () => {
               this.goodbyePrimeSettled = true
             },
-            // Hide goodbye before pause/seek — iOS often snaps the visible
-            // frame on pause while data-mode is still 'goodbye'.
+            // Hide goodbye before pause — iOS often snaps a visible frame
+            // on pause while data-mode is still 'goodbye'. Do not seek here.
             onBeforeSilence: () => this.setMode('closed'),
           },
         ),
