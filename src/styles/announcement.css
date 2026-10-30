@@ -176,8 +176,6 @@
   .prize-announcement__name {
     --prize-announce-name-leading: 1.22;
     margin-block: var(--prize-announce-gap);
-    /* Display face leaves extra empty space under capitals; trim bottom so gaps look even. */
-    margin-bottom: calc(var(--prize-announce-gap) - 0.35em);
   }
 }
 
