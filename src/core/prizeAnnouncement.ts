@@ -96,6 +96,7 @@ export function createPrizeAnnouncement(
     if (!src) return null
     if (!prizeAudio) {
       prizeAudio = new Audio(src)
+      prizeAudio.volume = 0.25
       unregisterPrizeAudio = registerMediaElement(prizeAudio)
     }
     return prizeAudio

@@ -1,4 +1,5 @@
 import gsap from 'gsap'
+import { assets } from '../../config/assets'
 import { getBowlBoundaryRadii } from '../../config/bowlBoundaryRuntime'
 import { candyBowlConfig as config } from '../../config/candyBowl'
 import {
@@ -11,6 +12,10 @@ import {
 } from '../../config/prizeCatalog'
 import type { CuppedRevealElements } from '../../core/handsOverlay'
 import { preloadPrizeImages } from '../../core/preloadAssets'
+import {
+  registerMediaElement,
+  restoreMediaMute,
+} from '../../core/soundState'
 
 /** @deprecated Alias — prefer SelectedPrize. */
 type Prize = SelectedPrize
@@ -275,7 +280,74 @@ export function createCandyRummageController(
   let grabFinishTimer: ReturnType<typeof setTimeout> | null = null
   let grabStarted = false
 
+  let rummageAudio: HTMLAudioElement | null = null
+  let unregisterRummageAudio: (() => void) | null = null
+  let rummageActivityUntil = 0
+  let rummageActivityTimer: ReturnType<typeof setTimeout> | null = null
+  let lastActivityClient: { x: number; y: number } | null = null
+  const RUMMAGE_ACTIVITY_MS = 120
+
   const reduced = prefersReducedMotion()
+
+  function ensureRummageAudio(): HTMLAudioElement | null {
+    const src = assets.audio.rummage
+    if (!src) return null
+    if (!rummageAudio) {
+      rummageAudio = new Audio(src)
+      rummageAudio.loop = true
+      rummageAudio.volume = 0.10
+      unregisterRummageAudio = registerMediaElement(rummageAudio)
+    }
+    return rummageAudio
+  }
+
+  function clearRummageActivityTimer(): void {
+    if (rummageActivityTimer !== null) {
+      clearTimeout(rummageActivityTimer)
+      rummageActivityTimer = null
+    }
+  }
+
+  function stopRummageAudio(): void {
+    clearRummageActivityTimer()
+    rummageActivityUntil = 0
+    lastActivityClient = null
+    if (!rummageAudio) return
+    rummageAudio.pause()
+  }
+
+  function noteRummageActivity(): void {
+    if (state !== 'rummaging') return
+    const audio = ensureRummageAudio()
+    if (!audio) return
+
+    rummageActivityUntil = performance.now() + RUMMAGE_ACTIVITY_MS
+    restoreMediaMute(audio)
+    if (audio.paused) {
+      void audio.play().catch(() => {})
+    }
+
+    clearRummageActivityTimer()
+    rummageActivityTimer = setTimeout(() => {
+      rummageActivityTimer = null
+      if (performance.now() >= rummageActivityUntil) {
+        rummageAudio?.pause()
+      }
+    }, RUMMAGE_ACTIVITY_MS)
+  }
+
+  function noteRummagePointerActivity(clientX: number, clientY: number): void {
+    if (state !== 'rummaging') return
+    if (
+      lastActivityClient &&
+      lastActivityClient.x === clientX &&
+      lastActivityClient.y === clientY
+    ) {
+      return
+    }
+    lastActivityClient = { x: clientX, y: clientY }
+    noteRummageActivity()
+  }
 
   const onPointerDown = (event: PointerEvent): void => {
     const bowl = getBowlTarget()
@@ -290,6 +362,7 @@ export function createCandyRummageController(
     if (state !== 'rummaging') return
     if (event.button !== 0) return
     pointerClient = { x: event.clientX, y: event.clientY }
+    noteRummageActivity()
 
     const bowl = getBowlTarget()
     if (
@@ -324,6 +397,7 @@ export function createCandyRummageController(
   const onPointerMove = (event: PointerEvent): void => {
     pointerClient = { x: event.clientX, y: event.clientY }
     if (state === 'rummaging') {
+      noteRummagePointerActivity(event.clientX, event.clientY)
       applyFollow(event.clientX, event.clientY)
     }
   }
@@ -331,6 +405,7 @@ export function createCandyRummageController(
   const onMouseMove = (event: MouseEvent): void => {
     pointerClient = { x: event.clientX, y: event.clientY }
     if (state === 'rummaging') {
+      noteRummagePointerActivity(event.clientX, event.clientY)
       applyFollow(event.clientX, event.clientY)
     }
   }
@@ -1080,6 +1155,7 @@ export function createCandyRummageController(
     if (!canGrab() || !pose) return
     grabStarted = true
     state = 'grabbing'
+    stopRummageAudio()
     onGrabStart?.()
     stopFollowLoop()
 
@@ -1229,6 +1305,7 @@ export function createCandyRummageController(
 
   function clearRummageHands(): void {
     stopFollowLoop()
+    stopRummageAudio()
     clearPlungeFallback()
     killPlunge()
     grabStarted = false
@@ -1295,6 +1372,10 @@ export function createCandyRummageController(
       objects = []
       state = 'idle'
       lastMid = null
+      stopRummageAudio()
+      unregisterRummageAudio?.()
+      unregisterRummageAudio = null
+      rummageAudio = null
       clearSessionPrize()
       clearPendingBowlPrizes()
       leftHand.style.visibility = ''

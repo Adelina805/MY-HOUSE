@@ -41,6 +41,8 @@ export const assets = {
     paper: '/media/doorstep/paper.wav',
     /** Prize announcement sting. Empty = silent announcement. */
     prize: '/media/candy/duolingo-level-complete.mp3',
+    /** Bowl rummage loop while the cursor moves/taps. Empty = silent. */
+    rummage: '/media/candy/rummage.mp3',
   },
   effects: {
     /** White radial burst behind cupped hands during prize announcement. */
