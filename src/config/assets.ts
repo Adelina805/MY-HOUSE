@@ -39,6 +39,8 @@ export const assets = {
     knock: '/media/doorstep/knock.mov',
     /** Paper swish when opening/closing the guestbook. Empty = silent. */
     paper: '/media/doorstep/paper.wav',
+    /** Prize announcement sting. Empty = silent announcement. */
+    prize: '/media/candy/duolingo-level-complete.mp3',
   },
   effects: {
     /** White radial burst behind cupped hands during prize announcement. */

@@ -5,6 +5,7 @@ import {
   formatPrizeAnnouncement,
   type SelectedPrize,
 } from '../config/prizeCatalog'
+import { registerMediaElement, restoreMediaMute } from './soundState'
 
 const cfg = candyBowlConfig.announcement
 
@@ -87,6 +88,32 @@ export function createPrizeAnnouncement(
   let rotationTween: gsap.core.Tween | null = null
   let playing = false
   let resolvePlay: (() => void) | null = null
+  let prizeAudio: HTMLAudioElement | null = null
+  let unregisterPrizeAudio: (() => void) | null = null
+
+  function ensurePrizeAudio(): HTMLAudioElement | null {
+    const src = assets.audio.prize
+    if (!src) return null
+    if (!prizeAudio) {
+      prizeAudio = new Audio(src)
+      unregisterPrizeAudio = registerMediaElement(prizeAudio)
+    }
+    return prizeAudio
+  }
+
+  function playPrizeSound(): void {
+    const audio = ensurePrizeAudio()
+    if (!audio) return
+    restoreMediaMute(audio)
+    audio.currentTime = 0
+    void audio.play().catch(() => {})
+  }
+
+  function stopPrizeSound(): void {
+    if (!prizeAudio) return
+    prizeAudio.pause()
+    prizeAudio.currentTime = 0
+  }
 
   function stopRotation(): void {
     if (rotationTween) {
@@ -172,6 +199,7 @@ export function createPrizeAnnouncement(
 
     // Announce once for screen readers (not each staged fade).
     live.textContent = `You received ${copy.spoken}`
+    playPrizeSound()
 
     if (!reduced) {
       rotationTween = gsap.to(burst, {
@@ -245,12 +273,16 @@ export function createPrizeAnnouncement(
     const done = resolvePlay
     resolvePlay = null
     cleanupPlayState()
+    stopPrizeSound()
     hideImmediate()
     done?.()
   }
 
   function destroy(): void {
     reset()
+    unregisterPrizeAudio?.()
+    unregisterPrizeAudio = null
+    prizeAudio = null
     burstWrap.remove()
     root.remove()
   }
