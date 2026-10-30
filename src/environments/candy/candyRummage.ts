@@ -316,12 +316,11 @@ export function createCandyRummageController(
     rummageAudio.pause()
   }
 
-  function noteRummageActivity(): void {
-    if (state !== 'rummaging') return
+  function playRummageAudioFor(ms: number): void {
     const audio = ensureRummageAudio()
     if (!audio) return
 
-    rummageActivityUntil = performance.now() + RUMMAGE_ACTIVITY_MS
+    rummageActivityUntil = performance.now() + ms
     restoreMediaMute(audio)
     if (audio.paused) {
       void audio.play().catch(() => {})
@@ -333,7 +332,18 @@ export function createCandyRummageController(
       if (performance.now() >= rummageActivityUntil) {
         rummageAudio?.pause()
       }
-    }, RUMMAGE_ACTIVITY_MS)
+    }, ms)
+  }
+
+  function noteRummageActivity(): void {
+    if (state !== 'rummaging') return
+    playRummageAudioFor(RUMMAGE_ACTIVITY_MS)
+  }
+
+  function startRummageAudioForPlunge(): void {
+    const plungeMs =
+      (config.plunge.duration + config.plunge.bounceDuration + 0.05) * 1000
+    playRummageAudioFor(plungeMs)
   }
 
   function noteRummagePointerActivity(clientX: number, clientY: number): void {
@@ -532,6 +542,7 @@ export function createCandyRummageController(
 
     state = 'plunging'
     onPlungeStart?.()
+    startRummageAudioForPlunge()
     prepareHandsForControl()
     killPlunge()
     clearPlungeFallback()
