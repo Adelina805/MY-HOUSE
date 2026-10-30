@@ -295,7 +295,7 @@ export function createCandyRummageController(
     if (!rummageAudio) {
       rummageAudio = new Audio(src)
       rummageAudio.loop = true
-      rummageAudio.volume = 0.10
+      rummageAudio.volume = 0.05
       unregisterRummageAudio = registerMediaElement(rummageAudio)
     }
     return rummageAudio
