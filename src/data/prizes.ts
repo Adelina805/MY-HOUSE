@@ -135,13 +135,13 @@ export const PRIZES: PrizeDefinition[] = [
     'comic-con-buttons',
     'Comic-Con buttons',
     ['mysterious', 'collector', 'slightly bent', 'exclusive'],
-    [...DOWNTOWN, 'Gaslamp Quarter']
+    DOWNTOWN
   ),
   prize(
     'concha-pastrie',
     'concha pastry',
     ['sugar-dusted', 'slightly stale', 'bakery', 'comforting'],
-    [...FOOD_SPOTS, 'Barrio Logan']
+    FOOD_SPOTS
   ),
   prize(
     'cool-ranch-doritos',
@@ -165,7 +165,7 @@ export const PRIZES: PrizeDefinition[] = [
     'de-la-rosa-mazapan',
     'De la Rosa mazapán',
     ['crumbly', 'powdery', 'nostalgic', 'sweet'],
-    [...FOOD_SPOTS, 'Barrio Logan', 'Old Town']
+    FOOD_SPOTS
   ),
   prize(
     'dollar-bills',
@@ -297,7 +297,7 @@ export const PRIZES: PrizeDefinition[] = [
     'mexican-pink-sprinkle-cake',
     'Mexican pink sprinkle cake',
     ['festive', 'slightly smashed', 'bakery', 'celebratory'],
-    [...FOOD_SPOTS, 'Barrio Logan']
+    FOOD_SPOTS
   ),
   prize(
     'morey-bodyboard',
@@ -333,19 +333,19 @@ export const PRIZES: PrizeDefinition[] = [
     'padres-baseball',
     'Padres baseball',
     ['powerful', 'scuffed', 'game-day', 'foul-ball'],
-    [...DOWNTOWN, 'Petco Park', 'East Village']
+    DOWNTOWN
   ),
   prize(
     'padres-cap',
     'Padres cap',
     ['sweat-stained', 'lucky', 'sun-faded', 'game-day'],
-    [...DOWNTOWN, 'Petco Park']
+    DOWNTOWN
   ),
   prize(
     'padres-soapy-joes-air-freshener',
     "Padres Soapy Joe's air freshener",
     ['pine-scented', 'dashboard', 'faded', 'loyal'],
-    [...DOWNTOWN, 'Petco Park']
+    DOWNTOWN
   ),
   prize(
     'panda-express-fortune-cookie',
@@ -411,7 +411,7 @@ export const PRIZES: PrizeDefinition[] = [
     'rellerindos-tamarindo-candy',
     'Rellerindos tamarindo candy',
     ['tangy', 'sticky', 'chili-dusted', 'nostalgic'],
-    [...FOOD_SPOTS, 'Barrio Logan']
+    FOOD_SPOTS
   ),
   prize(
     'rubber-duck',
@@ -621,7 +621,7 @@ export const PRIZES: PrizeDefinition[] = [
     'trader-joes-mini-tote-bag',
     "Trader Joe's mini tote bag",
     ['reusable', 'tiny', 'grocery', 'unexpectedly sturdy'],
-    [...NEIGHBORHOOD, 'Hillcrest']
+    NEIGHBORHOOD
   ),
   prize(
     'traffic-cone',
@@ -639,7 +639,7 @@ export const PRIZES: PrizeDefinition[] = [
     'unconditional-surrender-statue',
     'Unconditional Surrender statue',
     ['iconic', 'tourist', 'kissing', 'photographed'],
-    [...DOWNTOWN, 'Seaport Village', 'Embarcadero']
+    [...DOWNTOWN, 'Embarcadero']
   ),
   prize(
     'usb-flash-drive',

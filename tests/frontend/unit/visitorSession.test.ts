@@ -267,6 +267,19 @@ Deno.test('the fallback prize is not a catalog prize and is never sent', async (
   assertEquals(warnings.length, 2)
 })
 
+Deno.test('the koala newspaper vintage SDSU award is queued and sent', async () => {
+  const { server, session, recorded } = setup()
+  session.start()
+  session.recordAward({ id: 'the-koala-newspaper', adjective: 'vintage', location: 'SDSU' })
+  await settle()
+  const sent = server.requestsTo('record-award')
+  assertEquals(sent.length, 1)
+  assertEquals(sent[0].body.prizeId, 'the-koala-newspaper')
+  assertEquals(sent[0].body.adjective, 'vintage')
+  assertEquals(sent[0].body.location, 'SDSU')
+  assertEquals(recorded(), 1)
+})
+
 for (const refusal of [
   failure(409, 'award_id_conflict'),
   failure(422, 'invalid_prize'),

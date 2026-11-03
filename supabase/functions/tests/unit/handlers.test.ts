@@ -380,6 +380,19 @@ Deno.test('a combination outside the catalog is rejected with 422 before any dat
   assertEquals(calls.length, 0)
 })
 
+Deno.test('the koala newspaper vintage SDSU award is accepted and uses the catalog object name', async () => {
+  const { deps, calls } = harness(() => ok({ status: 'created', award: ENTRY }))
+  const body = awardBody({ prizeId: 'the-koala-newspaper', adjective: 'vintage', location: 'SDSU' })
+  const res = await read(await createRecordAwardHandler(deps)(post('record-award', body)))
+  assertEquals(res.status, 201)
+  assertEquals(calls.length, 1)
+  assertEquals(calls[0].name, 'record_prize_award')
+  assertEquals(calls[0].args.p_prize_id, 'the-koala-newspaper')
+  assertEquals(calls[0].args.p_object_name, 'The Koala newspaper')
+  assertEquals(calls[0].args.p_adjective, 'vintage')
+  assertEquals(calls[0].args.p_location, 'SDSU')
+})
+
 Deno.test('awards send the catalog object name and map every outcome', async () => {
   const outcomes = [
     [{ status: 'created', award: ENTRY }, 201],

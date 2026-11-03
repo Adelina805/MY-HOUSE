@@ -185,13 +185,16 @@ select cron.schedule('my-house-cleanup', '17 * * * *', 'select private.cleanup_e
 
 ## Prize catalog
 
-`record-award` accepts only prize, adjective, and location combinations from `functions/_shared/prizeCatalog.generated.ts`, and takes the object name from the catalog rather than the client. After editing `src/data/prizes.ts`, regenerate the catalog:
+`record-award` accepts only prize, adjective, and location combinations from `functions/_shared/prizeCatalog.generated.ts`, and takes the object name from the catalog rather than the client. After editing `src/data/prizes.ts`, regenerate the catalog and confirm it is current:
 
 ```sh
 npm run catalog:generate
+npm run catalog:check
 ```
 
-`npm run test:functions` fails if the generated file is stale.
+`npm run test:functions` and `npm run build` fail if the generated file is stale.
+
+A Vercel deploy updates the frontend catalog only. Hosted `record-award` keeps serving whatever catalog was bundled at its last `supabase functions deploy`. After a catalog change, redeploy `record-award` (and Vercel if the frontend should show the new prizes). Do not expect one of those deploys to update the other.
 
 Prize IDs are stored with every gift, so treat them as permanent once gifts exist. Add new IDs rather than renaming live ones; if a rename is unavoidable, migrate the stored rows in the same release. Stage A renamed `japanese-naurical-glass-orb` to `japanese-nautical-glass-orb` while no gifts existed.
 

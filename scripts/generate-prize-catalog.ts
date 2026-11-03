@@ -2,8 +2,11 @@
  * Generates supabase/functions/_shared/prizeCatalog.generated.ts from src/data/prizes.ts, so the
  * Edge Functions validate awards against the same catalog the browser picks prizes from.
  *
- *   node --experimental-strip-types scripts/generate-prize-catalog.ts           write the file
- *   node --experimental-strip-types scripts/generate-prize-catalog.ts --check   fail if it is stale
+ *   npm run catalog:generate   write the file
+ *   npm run catalog:check      fail if it is stale
+ *
+ * After regenerating, commit this file and redeploy `record-award`. A Vercel frontend
+ * deploy does not update the hosted Edge Function catalog.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
@@ -67,6 +70,8 @@ function buildCatalog(prizes: readonly PrizeDefinition[]): CatalogEntry[] {
     const locations = [...new Set(prize.locations)]
     if (adjectives.length === 0) fail(`${id} has no adjectives`)
     if (locations.length === 0) fail(`${id} has no locations`)
+    if (adjectives.length !== prize.adjectives.length) fail(`${id} has duplicate adjectives`)
+    if (locations.length !== prize.locations.length) fail(`${id} has duplicate locations`)
     for (const adjective of adjectives) checkText(adjective, MAX_ADJECTIVE, `${id} adjective`)
     for (const location of locations) checkText(location, MAX_LOCATION, `${id} location`)
 

@@ -73,6 +73,10 @@ Deno.test('frontend and server catalogs each contain exactly 100 prizes', () => 
 })
 
 Deno.test('the generated catalog matches src/data/prizes.ts (run `npm run catalog:generate` if this fails)', () => {
+  for (const prize of PRIZES) {
+    assertEquals(prize.adjectives.length, new Set(prize.adjectives).size, `${prize.id} has duplicate adjectives`)
+    assertEquals(prize.locations.length, new Set(prize.locations).size, `${prize.id} has duplicate locations`)
+  }
   const expected = PRIZES.map((prize) => ({
     id: prize.id,
     objectName: prize.name,
@@ -94,6 +98,8 @@ Deno.test('every catalog prize has an image and fits the database limits', async
     assert([...prize.objectName].length <= 80)
     assert(prize.adjectives.length > 0 && prize.adjectives.every((a) => [...a].length <= 40))
     assert(prize.locations.length > 0 && prize.locations.every((l) => [...l].length <= 80))
+    assertEquals(prize.adjectives.length, new Set(prize.adjectives).size, `${prize.id} has duplicate adjectives`)
+    assertEquals(prize.locations.length, new Set(prize.locations).size, `${prize.id} has duplicate locations`)
   }
 })
 
@@ -105,6 +111,51 @@ Deno.test('the original 60 prize IDs remain in both catalogs', () => {
     assert(frontendIds.has(id), `missing from frontend: ${id}`)
     assert(serverIds.has(id), `missing from server: ${id}`)
   }
+})
+
+function frontendCombinations(): Array<{
+  prizeId: string
+  objectName: string
+  adjective: string
+  location: string
+}> {
+  return PRIZES.flatMap((prize) =>
+    [...new Set(prize.adjectives)].flatMap((adjective) =>
+      [...new Set(prize.locations)].map((location) => ({
+        prizeId: prize.id,
+        objectName: prize.name,
+        adjective,
+        location,
+      })),
+    ),
+  )
+}
+
+Deno.test('resolveAward accepts every frontend prize, adjective, and location combination', () => {
+  const combinations = frontendCombinations()
+  assertEquals(combinations.length, 2620)
+  for (const award of combinations) {
+    assertEquals(resolveAward(award.prizeId, award.adjective, award.location), award)
+  }
+})
+
+Deno.test('the production koala newspaper vintage SDSU combination is accepted', () => {
+  const frontend = PRIZES.find((prize) => prize.id === 'the-koala-newspaper')
+  const server = PRIZE_CATALOG.find((prize) => prize.id === 'the-koala-newspaper')
+  assert(frontend)
+  assert(server)
+  assertEquals(frontend.name, 'The Koala newspaper')
+  assertEquals(server.objectName, 'The Koala newspaper')
+  assert(frontend.adjectives.includes('vintage'))
+  assert(frontend.locations.includes('SDSU'))
+  assert(server.adjectives.includes('vintage'))
+  assert(server.locations.includes('SDSU'))
+  assertEquals(resolveAward('the-koala-newspaper', 'vintage', 'SDSU'), {
+    prizeId: 'the-koala-newspaper',
+    objectName: 'The Koala newspaper',
+    adjective: 'vintage',
+    location: 'SDSU',
+  })
 })
 
 Deno.test('resolveAward accepts exact catalog combinations and derives the object name', () => {
@@ -143,6 +194,8 @@ Deno.test('resolveAward rejects anything outside the catalog', () => {
   assertEquals(resolveAward('trophy', 'champion', 'balboa park'), null)
   assertEquals(resolveAward('trophy', 'sandy', 'Balboa Park'), null, "another prize's adjective")
   assertEquals(resolveAward('trophy', 'champion', 'Ocean Beach'), null, "another prize's location")
+  assertEquals(resolveAward('the-koala-newspaper', 'vintage', 'Bonita'), null, "another prize's location")
+  assertEquals(resolveAward('the-koala-newspaper', 'legendary', 'SDSU'), null, "another prize's adjective")
   assertEquals(resolveAward('fallback-mystery', 'mysterious', 'somewhere nearby'), null)
   assertEquals(resolveAward('__proto__', 'champion', 'Balboa Park'), null)
   assertEquals(resolveAward('constructor', 'champion', 'Balboa Park'), null)
